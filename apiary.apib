@@ -39,9 +39,9 @@ On endpoints where a `sort` query parameter is allowed, the supplied value shoul
 
 ## Relationship Links
 
-Payloads may contain links to related data, each represented as a property sharing the name of the respective relationship. The links point to either single or multiple related entities. A link to a single entity points to the cardinal endpoint for that entity. A link to multiple entities points to an endpoint dedicated to representing that particular relationship.
+Payloads may contain links to related data, each represented as a property sharing the name of the respective relationship. The links point to either single or multiple related entities. A link to a single entity points to the canonical endpoint for that entity. A link to multiple entities points to an endpoint dedicated to representing that particular relationship.
 
-For example, if object `/objects/a` has children `/objects/b` and `/objects/c`, the payload returned by `/objects/a` will have a property `hasChildren` with a value of `/objects/a/hasChildren`, because multiple children can be returned. However, the payload returned by `/objects/b/` will contain a property 'isChildOf' with a value of `/objects/a` (not `/objects/b/isChildOf`), because the relationship represents a single entity.
+For example, if object `/objects/a` has children `/objects/b` and `/objects/c`, the payload returned by `/objects/a` will have a property `objects` with a value of `/objects/a/objects`, because multiple children can be returned. However, the payload returned by `/objects/b/` will contain a property 'parent' with a value of `/objects/a` (not `/objects/b/parent`), because the relationship represents a single entity.
 
 Additionally, each payload will contain a `self` property, which contains a link representing the endpoint used to obtain the data contained in the current payload.
 
@@ -60,28 +60,122 @@ There are some general rules that apply across all endpoints. If certain provide
 |Parameter not in set           |400 (Bad Request) |A string parameter has a set of predefined valid values, and the value provided is not included in that set|
 |Parameter not in correct format|400 (Bad Request) |A string parameter with expected format is provided in the wrong format                                    |
 
-<!-- include(include.md) -->
+Group Authentication
+====================
 
-Group Activities
+This section contains authentication-related methods to acquire and use an access token (JWT format) with
+any and all of the micro-services.  The access token contains the standard JWT claims, plus several single-value
+claims.  Authorization-related claims are retrieved from the `userinfo` endpoint.  The expiration of the access
+token is based on the Metasys user profile.  The expiration of the refresh token is currently set to 5 hours, which is
+the maximum length of the Metasys user session (300 minutes) when not "Never Terminate".  The refresh token has a
+sliding expiration and it is allowed multiple uses and is advanced as it is reused.  The API and the parameters are
+dictated by the 3rd party component IdentityServer 3, which is an open-source implementation of OAuth2 and OpenId Connect.
+
+## Token Management [/connect/token]
+
+This endpoint allows you to retrieve and refresh access tokens which are needed on all other types of calls for authentication purposes.
+
+The `/connect/token` has two functions:
+
+1. It is used to login. The act of logging in establishes a session for the specified Metasys user and returns an `access_token` which is used on future requests that will be sent during this session.
+1. It is used to extend a session. (All sessions have an expiration time. If you wish to keep the session alive longer - without having to login again - you can use this endpoint to refresh the token)
+
+### Login and Session Extension [POST]
+
+See the two request/response examples in the sidebar. The first shows an example of logging in and retrieving an `access_token`. 
+The second shows an example of using the refresh token to extend a session and get a new `access_token`.
+
++ Request (application/x-www-form-urlencoded)
+
+    > This request will login the specified user and return an access_token that can be used as authentication on future requests in this session. The session
+    will eventually expire. See the `expires_in` field of the response to determine how long the session will be valid. See the next request on how to extend
+    the session and acquire a new `access_token`.
+
+    + Attributes (TokenRequestLogin)
+
+    + Body
+
+            client_id=metasys_ui&client_secret=secret&grant_type=password&scope=metasys_api+openid+offline_access+profile&username=username&password=password
+
++ Response 200 (application/vnd.metasysapi.v1+json)
+
+    + Body
+
+            {
+                "access_token": "eyJ0eXAiOiJMN1QiLCJhbGciOiJSUzI1NiIsIng1dCI6IklFa3FIWUl1bHRlYlFMREVmWDVnMDViY2NxZyIsImtpZCI6IklFa3FIWUl1bHRlYlFMREVmWDVnMDViY2NxZyJ9.eyJpc3MiOiJodHRwczovL2xvY2FsaG9zdC9BUEkuQXV0aGVudGljYXRpb25TZXJ2aWNlIiwiYXVkIjoiaHR0cHM6Ly9sb2NhbGhvc3QvQVBJLkF1dGhlbnRpY2F0aW9uU2VydmljZS9yZXNvdXJjZXMiLCJleHAiOjE1MjU5Njg3NzYsIm5iZiI6MTUyNTk2Njk3NiwiY2xpZW50X2lkIjoiTWV0YXN5cyBVSSIsInNjb3BlIjpbIm1ldGFzeXMtdWktYXBpIiwib2ZmbGluZV9hY2Nlc3MiLCJvcGVuaWQiXSwic3ViIjoiNjY0ZGQxZTMtZWE3OS00MTE5LWE5ZjgtNTMzZjJlZTU2OTFjIiwiYXV0aF90aW1lIjoxNTI1OTY2OTc2LCJpZHAiOiJpZHNydiIsIlVzZXJJZCI6IjEiLCJVc2VyTmFtZSI6Im1ldGFzeXNzeXNhZ2VudCIsIklzQWRtaW4iOiJUcnVlIiwiSXNQYXNzd29yZENoYW5nZVJlcXVpcmVkIjoiRmFsc2UiLCJJc1Rlcm1zQW5kQ29uZGl0aW9uc1JlcXVpcmVkIjoiRmFsc2UiLCJJc0xpY2Vuc2VkIjoiVHJ1ZSIsIkN1bHR1cmUiOiJlbi1VUyIsImFtciI6WyJwYXNzd29yZCJdfQ.HHNzOks154CWHG1lqmgq2cOueMFaIUtCbMu4_8bE2O8SdKKeoFKD91WMRUrKbrQ-EUiR7pSbl8HgrLNFaLDNGqFCxQUG7X3Qbc60fSZc-QAcit16pXuvfAdQ16iKTaUE6Wxja9PM_5x0JbvDHm4GghWeUonw5lsWB_iFjFQf23E1eOZAP_dA1ueiza1Uqz-5cQ8l5wylxQNIKevoUTxwb1mBKyEzHARGcThxsWJBW2qwfJUOHnmB67FMBJunHLerFeXpvj3xxobtKbkYVGaf2-kECArRILKEH5HO8MV1Fj4nloVUbL7z7uSfL_nSRDCH0wk8--SCWZW9N1qfMOhijQ",
+                "expires_in": 1800,
+                "token_type": "Bearer",
+                "refresh_token": "a13dc41187f43a38ae0b9153b197fa57"
+            }
+
+    + Attributes (TokenResponse)
+
++ Request (application/x-www-form-urlencoded)
+
+    > This request will extend a session identified by the `refresh_token` and return a new `access_token`.
+
+    + Attributes (TokenRequestRefresh)
+
+    + Body
+
+            client_id=metasys_ui&client_secret=secret&grant_type=refresh_token&scope=metasys_api+openid+offline_access+profile&refresh_token=a13dc41187f43a38ae0b9153b197fa57
+
++ Response 200 (application/vnd.metasysapi.v1+json)
+
+    + Attributes (RefreshTokenResponse)
+
+    + Body
+
+            {
+                "id_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6IklFa3FIWUl1bHRlYlFMREVmWDVnMDViY2NxZyIsImtpZCI6IklFa3FIWUl1bHRlYlFMREVmWDVnMDViY2NxZyJ9.eyJpc3MiOiJodHRwczovL2xvY2FsaG9zdC9BUEkuQXV0aGVudGljYXRpb25TZXJ2aWNlIiwiYXVkIjoiTWV0YXN5cyBVSSIsImV4cCI6MTUyNTk4NTA4NCwibmJmIjoxNTI1OTg0Nzg0LCJpYXQiOjE1MjU5ODQ3ODQsImF0X2hhc2giOiI2R0JwNmRtNml0MEVPbC1mWGlWdDdBIiwic3ViIjoiMzU0ZDNmYzUtMzQ2OS00ZTM3LTk2MGMtYmNjODY3YzJjMmQ4IiwiYXV0aF90aW1lIjoxNTI1OTg0NzQxLCJpZHAiOiJpZHNydiIsIlVzZXJJZCI6IjEiLCJVc2VyTmFtZSI6Im1ldGFzeXNzeXNhZ2VudCIsIklzQWRtaW4iOiJUcnVlIiwiSXNQYXNzd29yZENoYW5nZVJlcXVpcmVkIjoiRmFsc2UiLCJJc1Rlcm1zQW5kQ29uZGl0aW9uc1JlcXVpcmVkIjoiRmFsc2UiLCJJc0xpY2Vuc2VkIjoiVHJ1ZSIsIkN1bHR1cmUiOiJlbi1VUyIsImFtciI6WyJwYXNzd29yZCJdfQ.iDUbP-hLSGaFKZjWtZDpZyAKlHhcC4pgSOVRwGVRMu7o2Y8QOtJjdsmppRfYMwQX_mH7qV_mjhIC1W5Io-cyn76gXvpBloDhL7oledXq8obMAiYr1eNYbY989JOviFWHCGycu50sd0ckMsYgMQ0HqyslJqRtsy8aSMc89boKpyO9U3egEO4Nwj2qconC9BASrFOGbxsVZjHh0Qsnh2bWzThA8EypYPl6DLryuhZO6_LlxdCYvD1yWw_BppwHdIEy5CJrtDG6IhGWI9dgE0OkK6nzDbPF9mReQyVf_bnDge6nTrGVZG48M3GQrGFxqirTuhLJoABvSyfLkGvrlTyiEQ",
+                "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6IklFa3FIWUl1bHRlYlFMREVmWDVnMDViY2NxZyIsImtpZCI6IklFa3FIWUl1bHRlYlFMREVmWDVnMDViY2NxZyJ9.eyJpc3MiOiJodHRwczovL2xvY2FsaG9zdC9BUEkuQXV0aGVudGljYXRpb25TZXJ2aWNlIiwiYXVkIjoiaHR0cHM6Ly9sb2NhbGhvc3QvQVBJLkF1dGhlbnRpY2F0aW9uU2VydmljZS9yZXNvdXJjZXMiLCJleHAiOjE1MjU5ODY1ODQsIm5iZiI6MTUyNTk4NDc4NCwiY2xpZW50X2lkIjoiTWV0YXN5cyBVSSIsInNjb3BlIjpbIm1ldGFzeXMtdWktYXBpIiwib2ZmbGluZV9hY2Nlc3MiLCJvcGVuaWQiXSwic3ViIjoiMzU0ZDNmYzUtMzQ2OS00ZTM3LTk2MGMtYmNjODY3YzJjMmQ4IiwiYXV0aF90aW1lIjoxNTI1OTg0NzQxLCJpZHAiOiJpZHNydiIsIlVzZXJJZCI6IjEiLCJVc2VyTmFtZSI6Im1ldGFzeXNzeXNhZ2VudCIsIklzQWRtaW4iOiJUcnVlIiwiSXNQYXNzd29yZENoYW5nZVJlcXVpcmVkIjoiRmFsc2UiLCJJc1Rlcm1zQW5kQ29uZGl0aW9uc1JlcXVpcmVkIjoiRmFsc2UiLCJJc0xpY2Vuc2VkIjoiVHJ1ZSIsIkN1bHR1cmUiOiJlbi1VUyIsImFtciI6WyJwYXNzd29yZCJdfQ.Iau7FGJJuXOSPiPZQXSlrXvZK-wYEZptzBt90MEjbStQN3inIgCCyLlKHpQIQnmCO3C2vozOp0C0Ckutq0lMYvwo751c6GfP4ssZCFrjMeSydWf4Xz8RUORMuyXd2brejFKOuvrHCEliSOpEj9iZIRr1ililsx2IfwqH9GQGX3b3hyi_FYMSRjiBS339W6ptzmzTRx02f-E0ih85VQRmryoxoecPEqkFP9FO2M2_FUOoE87R014qPY2tA69eHzCMkijHKWyFvCkoJ7XsiYtp8RT_2euoU_YMrf0wVThSZmSNTcC9Fv3nP-mwndcGB7x9Duevtk1aWIEun7CT2X_wEA",
+                "expires_in": 1800,
+                "token_type": "Bearer",
+                "refresh_token": "88786cff0d659fe0922c86262a06be03"
+            }
+
+## Requesting User Profile [/connect/userinfo]
+
+### Request a User Profile [POST]
+Receives the logged in user's profile information
+
++ Request
+    + Headers
+
+            Content-Type: application/x-www-form-urlencoded
+            Authorization: Bearer {access_token}
+
++ Response 200 (application/vnd.metasysapi.v1+json)
+    + Headers
+
+    + Attributes
+        + UserId (string) - User Id
+        + UserName (string) - User Name
+        + Culture (string) - Language - Locale Code
+        + IsAdministrator (string) - Boolean Flag
+        + CategoryPermissions (string) - JSON-Formatted Serialized List of CategoryPermissions
+        + SystemPermissions (string) - JSON-Formatted Serialized SystemPermissions
+
+Group Audits
 ================
 
-This section contains information about activities as used within the Metasys API
+This section contains information about audits as used within the Metasys API
 
-## Activities Collection [/activities]
-
-### Get Activities [GET /activities/{?originApplications,classLevels,actions,ids,startTime,endTime,page,pageSize,sort,excludeDiscarded}]
-Retrieves a collection of activities. When using multiple filters, an AND evaluation is assumed.
+### Get Audits [GET /audits/{?originApplications,classLevels,actionTypes,startTime,endTime,excludeDiscarded,page,pageSize,sort}]
+Retrieves a collection of audits. When using multiple filters, an AND evaluation is assumed.
 
 + Parameters
     + originApplications:`1,2` (string, optional) - Filter by comma-separated list of origin applications
         + See /enumSets/578/members for possible values
     + classLevels:`1,2` (string, optional) - Filter by comma-separated list of class levels
         + See /enumSets/568/members for possible values
-    + actions:`1,2` (string, optional) - Filter by comma-separated list of the actions
+    + actionTypes:`1,2` (string, optional) - Filter by comma-separated list of the action types
         + See /enumSets/577/members for possible values
-    + ids:`E1C28F29-90DC-464F-90DE-07DC08454E31,483FB3F7-6C65-4570-9DC2-01F4FD1A8F3A` (string, optional) -  Filter by comma-separated list of identifiers of the audits
-    + startTime:`2018-05-21T13:58:20.243Z` (string, optional) - The ISO-8601 encoded dateTime representing the earliest activity to return
-    + endTime:`2018-05-22T13:58:20.243Z` (string, optional) - The ISO-8601 encoded dateTime representing the latest activity to return
+    + startTime:`2018-05-21T13:58:20.243Z` (string, optional) - The ISO-8601 encoded dateTime representing the earliest audit to return
+    + endTime:`2018-05-22T13:58:20.243Z` (string, optional) - The ISO-8601 encoded dateTime representing the latest audit to return
+    + excludeDiscarded (boolean, optional) - Determines whether discarded audits will be excluded from results. Default is `false` (discarded audits will not be excluded).
+        + Accepted Values: `true`,`false`
+        + Default: `false`
     + page (number, optional) - The page number of items to return
         + Default: `1`
     + pageSize (number, optional) - The maximum number of items to return in the response
@@ -89,9 +183,6 @@ Retrieves a collection of activities. When using multiple filters, an AND evalua
     + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
         + Accepted Values: `creationTime`
         + Default: `-creationTime`
-    + excludeDiscarded (boolean, optional) - Determines whether discarded audits will be excluded from results. Default is `false` (discarded audits will not be excluded).
-        + Accepted Values: `true`,`false`
-        + Default: `false`
 
 + Request
     + Headers
@@ -105,16 +196,14 @@ Retrieves a collection of activities. When using multiple filters, an AND evalua
             Allow: GET
 
     + Attributes
-        + Include ActivityEntityCollection
-        + self:`/activities{?queryParams}` (string) - A link to this activity data set
+        + Include AuditEntityCollection
+        + self:`/audits{?queryParams}` (string) - A link to this audit collection
 
-## Activity [/activities/{id}]
-
-### Get A Single Activity [GET /activities/{id}]
-Retrieves the specified activity.
+### Get A Single Audit [GET /audits/{id}]
+Retrieves the specified audit.
 
 + Parameters
-    + id:`E1C28F29-90DC-464F-90DE-07DC08454E31` (string) - The identifier of the activity to retrieve
+    + id:`00000000-0000-0000-0000-000000000000` (string) - The identifier of the audit to retrieve
     
 + Request
     + Headers
@@ -127,24 +216,57 @@ Retrieves the specified activity.
 
             Allow: GET
 
-    + Attributes(ActivityEntity) 
+    + Attributes(AuditEntity)
+
+### Get Audits For An Object [GET /objects/{id}/audits{?originApplications,classLevels,actionTypes,startTime,endTime,excludeDiscarded,page,pageSize,sort}]
+Retrieves a collection of audits for the specified object. When using multiple filters, an AND evaluation is assumed.
+
++ Parameters
+    + originApplications:`1,2` (string, optional) - Filter by comma-separated list of origin applications
+        + See /enumSets/578/members for possible values
+    + classLevels:`1,2` (string, optional) - Filter by comma-separated list of class levels
+        + See /enumSets/568/members for possible values
+    + actionTypes:`1,2` (string, optional) - Filter by comma-separated list of the action types
+        + See /enumSets/577/members for possible values
+    + startTime:`2018-05-21T13:58:20.243Z` (string, optional) - The ISO-8601 encoded dateTime representing the earliest audit to return
+    + endTime:`2018-05-22T13:58:20.243Z` (string, optional) - The ISO-8601 encoded dateTime representing the latest audit to return
+    + excludeDiscarded (boolean, optional) - Determines whether discarded audits will be excluded from results. Default is `false` (discarded audits will not be excluded).
+        + Accepted Values: `true`,`false`
+        + Default: `false`
+    + page (number, optional) - The page number of items to return
+        + Default: `1`
+    + pageSize (number, optional) - The maximum number of items to return in the response
+        + Default: `100`
+    + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
+        + Accepted Values: `creationTime`
+        + Default: `-creationTime`
+
++ Request
+    + Headers
+
+            Accept: application/vnd.metasysapi.v1+json
+            Authorization: Bearer [token]
+
++ Response 200 (application/vnd.metasysapi.v1+json)
+    + Headers
+
+            Allow: GET
+    + Attributes
+        + Include AuditEntityCollection
+        + self:`/objects/{id}/audits{?queryParams}` (string) - A link to this audit collection
 
 Group Alarms
 ============
 
 This section contains information about alarms as used within the Metasys API.
 
-## Alarms Collection [/alarms]
-A collection of alarms
-
-### Get Alarms [GET /alarms/{?startTime,endTime,priorityMinimum,priorityMaximum,type,excludePending,excludeAcknowledged,excludeDiscarded,attribute,category,page,pageSize,sort}]
+### Get Alarms [GET /alarms/{?startTime,endTime,priorityRange,type,excludePending,excludeAcknowledged,excludeDiscarded,attribute,category,page,pageSize,sort}]
 Retrieves a collection of alarms.
 
 + Parameters
     + startTime:`2018-05-21T13:58:20.243Z` (string, optional) - The ISO-8601 encoded dateTime representing the earliest alarm to return
     + endTime:`2018-05-21T13:58:20.243Z` (string, optional) - The ISO-8601 encoded dateTime representing the latest alarm to return
-    + priorityMinimum (number, optional) - The minimum priority of the requested alarms
-    + priorityMaximum (number, optional) - The maximum priority of the requested alarms 
+    + priorityRange:`0,255` (string, optional) - The inclusive priority range, from 0 to 255, of the alarm
     + type (number, optional) - The type of the requested alarms
         + See /enumSets/505/members for possible values
     + excludePending (boolean, optional) - The flag to exclude pending alarms
@@ -178,16 +300,64 @@ Retrieves a collection of alarms.
 
     + Attributes
         + Include AlarmEntityCollection
-        + self:`/alarms{?queryParams}` (string) - A link to this alarm data set
-
-## Alarm [/alarms/{id}]
-A specific alarm in the system
+        + self:`/alarms{?queryParams}` (string) - A link to this alarm collection
 
 ### Get A Single Alarm [GET /alarms/{id}]
 Retrieves the specified alarm.
 
 + Parameters
     + id (string) - The identifier of the alarm
+
++ Request Analog Alarm
+    + Headers
+
+            Accept: application/vnd.metasysapi.v1+json
+            Authorization: Bearer [token]
+
++ Response 200 (application/vnd.metasysapi.v1+json)
+    + Headers
+
+            Allow: GET
+
+    + Attributes (AlarmEntityAnalog)
+    
++ Request Digital Alarm
+    + Headers
+
+            Accept: application/vnd.metasysapi.v1+json
+            Authorization: Bearer [token]
+
++ Response 200 (application/vnd.metasysapi.v1+json)
+    + Headers
+
+            Allow: GET
+
+    + Attributes (AlarmEntityDigital)
+
+### Get Alarms For A Network Device [GET /networkDevices/{id}/alarms{?startTime,endTime,priorityRange,type,excludePending,excludeAcknowledged,excludeDiscarded,attribute,page,pageSize,sort}]
+Retrieves a collection of alarms for the specified network device.
+
++ Parameters
+    + startTime (string, optional) - The ISO-8601 encoded dateTime representing the earliest alarm to return
+    + endTime (string, optional) - The ISO-8601 encoded dateTime representing the latest alarm to return
+    + priorityRange:`0,255` (string, optional) - The inclusive priority range, from 0 to 255, of the alarm
+    + type (number, optional) - The type of the requested alarms
+        + See /enumSets/505/members for possible values.
+    + excludePending (boolean, optional) - The flag to exclude pending alarms
+        + Default: `false`
+    + excludeAcknowledged (boolean, optional) - The flag to exclude acknowledged alarms
+        + Default: `false`
+    + excludeDiscarded (boolean, optional) - The flag to exclude discarded alarms
+        + Default: `false`
+    + attribute (number, optional) - The attribute of the requested alarms
+        + See /enumSets/509/members for possible values
+    + page (number, optional) - The page number of items to return
+        + Default: `1`
+    + pageSize (number, optional) - The maximum number of items to return in the response
+        + Default: `100`
+    + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
+        + Accepted Values: `priority`, `creationTime`
+        + Default: `creationTime`
 
 + Request
     + Headers
@@ -200,7 +370,78 @@ Retrieves the specified alarm.
 
             Allow: GET
 
-    + Attributes(AlarmEntity)
+    + Attributes(NetworkDeviceAlarmsEntity)
+
+### Get Alarms For An Object [GET /objects/{id}/alarms{?startTime,endTime,priorityRange,type,excludePending,excludeAcknowledged,excludeDiscarded,attribute,page,pageSize,sort}]
+Retrieves a collection of alarms for the specified object.
+
++ Parameters
+    + startTime (string, optional) - The ISO-8601 encoded dateTime representing the earliest alarm to return
+    + endTime (string, optional) - The ISO-8601 encoded dateTime representing the latest alarm to return
+    + priorityRange:`0,255` (string, optional) - The inclusive priority range, from 0 to 255, of the alarm
+    + type (number, optional) - The type of the requested alarms
+        + See /enumSets/505/members for possible values.
+    + excludePending (boolean, optional) - The flag to exclude pending alarms
+        + Default: `false`
+    + excludeAcknowledged (boolean, optional) - The flag to exclude acknowledged alarms
+        + Default: `false`
+    + excludeDiscarded (boolean, optional) - The flag to exclude discarded alarms
+        + Default: `false`
+    + attribute (number, optional) - The attribute of the requested alarms
+        + See /enumSets/509/members for possible values
+    + page (number, optional) - The page number of items to return
+        + Default: `1`
+    + pageSize (number, optional) - The maximum number of items to return in the response
+        + Default: `100`
+    + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
+        + Accepted Values: `priority`, `creationTime`
+        + Default: `creationTime`
+
++ Request
+    + Headers
+
+            Accept: application/vnd.metasysapi.v1+json
+            Authorization: Bearer [token]
+
++ Response 200 (application/vnd.metasysapi.v1+json)
+    + Headers
+
+            Allow: GET
+
+    + Attributes (ObjectAlarmsEntity)
+
+Group Annotations
+================
+
+This section contains information about annotations as used within the Metasys API
+
+### Get Audit Annotations [GET /audits/{id}/annotations{?page,pageSize,sort}]
+Retrieves a collection of audit annotations.
+
++ Parameters
+    + id:`00000000-0000-0000-0000-000000000000` (string) - The identifier of the audit to retrieve annotations for
+    + page (number, optional) - The page number of items to return
+        + Default: `1`
+    + pageSize (number, optional) - The maximum number of items to return in the response
+        + Default: `100`
+    + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
+        + Accepted Values: `creationTime`
+        + Default: `-creationTime`
+
++ Request
+    + Headers
+
+            Accept: application/vnd.metasysapi.v1+json
+            Authorization: Bearer [token]
+
++ Response 200 (application/vnd.metasysapi.v1+json)
+    + Headers
+
+            Allow: GET
+
+    + Attributes
+        + Include AuditAnnotationEntityCollection
+        + self:`/audits/{id}/annotations{?queryParams}` (string) - A link to this audit annotation data set
 
 ### Get Alarm Annotations [GET /alarms/{id}/annotations/{?startTime,endTime,page,pageSize,sort}]
 Retrieves the collection of annotations available for the specified alarm.
@@ -230,7 +471,7 @@ Retrieves the collection of annotations available for the specified alarm.
 
     + Attributes
         + Include AlarmAnnotationEntityCollection
-        + self:`/alarms/{id}/annotations{?queryParams}` (string) - A link to this alarm data set
+        + self:`/alarms/{id}/annotations{?queryParams}` (string) - A link to this alarm annotation collection
 
 Group Enumerations
 ==================
@@ -262,7 +503,7 @@ Retrieves a collection of all enumeration sets in the system.
 
     + Attributes
         + Include EnumSetCollection
-        + self:`/enumSets{?queryParams}` (string) - A link to this enum set data set
+        + self:`/enumSets{?queryParams}` (string) - A link to this enum set collection
 
 ## Enum Set [/enumSets/{id}]
 A set of enumerated values
@@ -312,7 +553,7 @@ Retrieves the collection of member values belonging to the specified enumeration
 
     + Attributes
         + Include EnumMemberCollection
-        + self:`/enumSets/{id}/members{?queryParams}` (string) - A link to this enum member data set
+        + self:`/enumSets/{id}/members{?queryParams}` (string) - A link to this enum member collection
 
 ## Enum Member [/enumSets/{id}/members/{memberId}]
 A particular member value within an enum set
@@ -341,8 +582,8 @@ Group Equipment
 ===============
 This section contains information about equipment-related resources as used within the Metasys API.
 
-## Equipment Collection [/equipment{?page,pageSize,sort}]
-A collection of Equipment
+### Get Equipment Instances [GET /equipment{?page,pageSize,sort}]
+Retrieves a collection of equipment instances.
 
 + Parameters
     + page (number, optional) - The page number of items to return
@@ -352,9 +593,6 @@ A collection of Equipment
     + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
         + Accepted Values: `itemReference`, `name`, `type`
         + Default: `name`
-
-### Get Equipment Instances [GET]
-Retrieves a collection of equipment instances.
 
 + Request
     + Headers
@@ -369,16 +607,13 @@ Retrieves a collection of equipment instances.
 
     + Attributes
         + Include EquipmentEntityCollection
-        + self:`/equipment{?queryParams}` (string) - A link to this equipment data set
+        + self:`/equipment{?queryParams}` (string) - A link to this equipment collection
 
-## Equipment [/equipment/{id}]
-A specific piece of equipment in the system
+### Get A Single Equipment Instance [GET /equipment/{id}]
+Retrieves the specified equipment instance.
 
 + Parameters
     + id (string) - The identifier of the instance of equipment
-
-### Get A Single Equipment Instance [GET]
-Retrieves the specified equipment instance.
 
 + Request
     + Headers
@@ -393,34 +628,7 @@ Retrieves the specified equipment instance.
 
     + Attributes (EquipmentEntity)
 
-### Get Spaces Served By An Equipment Instance [GET /equipment/{id}/spacesServed{?page,pageSize,sort}]
-Retrieves the collection of spaces served by the specified equipment instance.
-
-+ Parameters
-    + page (number, optional) - The page number of items to return
-        + Default: `1`
-    + pageSize (number, optional) - The maximum number of items to return in the response
-        + Default: `100`
-    + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
-        + Accepted Values: `itemReference`, `name`, `typeId`
-        + Default: `name`
-
-+ Request
-    + Headers
-
-            Accept: application/vnd.metasysapi.v1+json
-            Authorization: Bearer [token]
-
-+ Response 200 (application/vnd.metasysapi.v1+json)
-    + Headers
-
-            Allow: GET
-
-    + Attributes
-        + Include SpaceEntityCollection
-        + self:`/equipment/{id}/spacesServed{?queryParams}` (string) - A link to this space data set
-
-### Get Equipment Served By An Equipment Instance [GET /equipment/{id}/equipmentServed{?page,pageSize,sort}]
+### Get Equipment Served By An Equipment Instance [GET /equipment/{id}/equipment{?page,pageSize,sort}]
 Retrieves the equipment served by the specified equipment instance.
 
 + Parameters
@@ -445,9 +653,9 @@ Retrieves the equipment served by the specified equipment instance.
 
     + Attributes
         + Include EquipmentEntityCollection
-        + self:`/equipment/{id}/equipmentServed{?queryParams}` (string) - A link to this equipment data set
+        + self:`/equipment/{id}/equipment{?queryParams}` (string) - A link to this equipment collection
 
-### Get Equipment Serving An Equipment Instance [GET /equipment/{id}/servedBy{?page,pageSize,sort}]
+### Get Equipment that Serve An Equipment Instance [GET /equipment/{id}/upstreamEquipment{?page,pageSize,sort}]
 Retrieves the collection of equipment that serve the specified equipment instance.
 
 + Parameters
@@ -472,184 +680,9 @@ Retrieves the collection of equipment that serve the specified equipment instanc
 
     + Attributes
         + Include EquipmentEntityCollection
-        + self:`/equipment/{id}/servedBy{?queryParams}` (string) - A link to this equipment data set
+        + self:`/equipment/{id}/upstreamEquipment{?queryParams}` (string) - A link to this equipment collection
 
-### Get Network Devices Hosting An Equipment Instance [GET /equipment/{id}/hostedBy{?page,pageSize,sort}]
-Retrieves the collection of network devices that host the specified equipment instance, along with the parents of those network devices. A network device is considered to host an equipment if the equipment defines points that map to an attribute of any object contained on the network device.
-
-+ Parameters
-    + page (number, optional) - The page number of items to return
-        + Default: `1`
-    + pageSize (number, optional) - The maximum number of items to return in the response
-        + Default: `100`
-    + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
-        + Accepted Values: `categoryId`, `firmwareVersion`, `itemReference`, `name`, `typeId`
-        + Default: `name`
-
-+ Request
-    + Headers
-
-            Accept: application/vnd.metasysapi.v1+json
-            Authorization: Bearer [token]
-
-+ Response 200 (application/vnd.metasysapi.v1+json)
-    + Headers
-
-            Allow: GET
-
-    + Attributes 
-        + Include NetworkDeviceEntityCollection
-        + self:`/equipment/{id}/hostedBy{?queryParams}` (string) - A link to this network device data set
-
-### Get Points Defined by An Equipment Instance [GET /equipment/{id}/hasMappings{?page,pageSize,sort}]
-Retrieves the collection of points that are defined by the specified equipment instance. Each point contains a mapping to an attribute on an object.
-
-+ Parameters
-    + page (number, optional) - The page number of items to return
-        + Default: `1`
-    + pageSize (number, optional) - The maximum number of items to return in the response
-        + Default: `100`
-    + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
-        + Accepted Values: `category`,`equipmentName`, `isDisplayData`, `shortName`
-        + Default: `shortName`
-
-+ Request
-    + Headers
-
-            Accept: application/vnd.metasysapi.v1+json
-            Authorization: Bearer [token]
-
-+ Response 200 (application/vnd.metasysapi.v1+json)
-    + Headers
-
-            Allow: GET
-
-    + Attributes 
-        + Include EquipmentPointMappingCollection
-        + self:`/equipment/{id}/hasMappings{?queryParams}` (string) - A link to this equipment point mapping data set
-
-Group Network Devices
-=====================
-
-This section contains information about network device-related resources as used within the Metasys API
-
-## Network Device Collection [/networkDevices{?type,page,pageSize,sort}]
-A collection of all network devices in the system
-
-+ Parameters
-    + type (number, optional) - Type of network device to return
-        + See /networkDevices/availableTypes for possible values
-    + page (number, optional) - The page number of items to return
-        + Default: `1`
-    + pageSize (number, optional) - The maximum number of items to return in the response
-        + Default: `100`
-    + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
-        + Accepted Values: `categoryId`, `firmwareVersion`, `itemReference`, `name`, `typeId`
-        + Default: `name`
-
-### Get Network Devices [GET]
-Retrieves a collection of network devices.
-
-+ Request
-    + Headers
-
-            Accept: application/vnd.metasysapi.v1+json
-            Authorization: Bearer [token]
-
-+ Response 200 (application/vnd.metasysapi.v1+json)
-    + Headers
-
-            Allow: GET
-
-    + Attributes 
-        + Include NetworkDeviceEntityCollection
-        + self:`/networkDevices{?queryParams}` (string) - A link to this network device data set
-
-### Get Network Device Types [GET /networkDevices/availableTypes]
-Retrieves the collection of all network device types.
-
-+ Request
-    + Headers
-
-            Accept: application/vnd.metasysapi.v1+json
-            Authorization: Bearer [token]
-
-+ Response 200 (application/vnd.metasysapi.v1+json)
-    + Headers
-
-            Allow: GET
-
-    + Attributes
-        + Include ItemCollection
-        + items (array[ObjectTypeEnum], fixed-type)
-        + self:`/networkDevices/availableTypes` - A link to this network device type data set
-
-## Network Device [/networkDevices/{id}]
-A specific network device in the system
-
-+ Parameters
-    + id (string) - The identifier of the network device
-
-### Get A Single Network Device [GET]
-Retrieves the specified network device.
-
-+ Request
-    + Headers
-
-            Accept: application/vnd.metasysapi.v1+json
-            Authorization: Bearer [token]
-
-+ Response 200 (application/vnd.metasysapi.v1+json)
-    + Headers
-
-            Allow: GET
-
-    + Attributes(NetworkDeviceEntity)
-
-### Get Network Device Parent [GET /networkDevices/{id}/isChildOf]
-Retrieves the network device that is the parent of the specified network device.
-
-+ Request
-    + Headers
-
-            Accept: application/vnd.metasysapi.v1+json
-            Authorization: Bearer [token]
-
-+ Response 200 (application/vnd.metasysapi.v1+json)
-    + Headers
-
-            Allow: GET
-
-    + Attributes(NetworkDeviceEntity)
-
-### Get Network Device Children [GET /networkDevices/{id}/hasChildren{?page,pageSize,sort}]
-Retrieves the collection of network devices that are children of the specified network device.
-
-+ Parameters
-    + page (number, optional) - The page number of items to return
-        + Default: `1`
-    + pageSize (number, optional) - The maximum number of items to return in the response
-        + Default: `100`
-    + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
-        + Accepted Values: `categoryId`, `firmwareVersion`, `itemReference`, `name`, `typeId`
-        + Default: `name`
-
-+ Request
-    + Headers
-
-            Accept: application/vnd.metasysapi.v1+json
-            Authorization: Bearer [token]
-
-+ Response 200 (application/vnd.metasysapi.v1+json)
-    + Headers
-
-            Allow: GET
-
-    + Attributes 
-        + Include NetworkDeviceEntityCollection
-        + self:`/networkDevices/{id}/hasChildren{?queryParams}` (string) - A link to this network device data set
-
-### Get Equipment Hosted By A Network Device [GET /networkDevices/{id}/hosts{?page,pageSize,sort}]
+### Get Equipment Hosted By A Network Device [GET /networkDevices/{id}/equipment{?page,pageSize,sort}]
 Retrieves the collection of equipment instances that are hosted by the specified network device or its children. A network device is considered to host an equipment if the equipment defines points that map to an attribute of any object contained on the network device.
 
 + Parameters
@@ -674,10 +707,10 @@ Retrieves the collection of equipment instances that are hosted by the specified
 
     + Attributes
         + Include EquipmentEntityCollection
-        + self:` /networkDevices/{id}/hosts{?queryParams}` (string) - A link to this equipment data set
+        + self:` /networkDevices/{id}/equipment{?queryParams}` (string) - A link to this equipment collection
 
-### Get Spaces Hosting A Network Device [GET /networkDevices/{id}/hostedBy{?page,pageSize,sort}]
-Retrieves the collection of spaces that host the specified network device. A space is considered to host a network device is considered to host an equipment if any equipment instance serving the space defines points that map to an attribute of any object contained on the network device.
+### Get Equipment Serving A Space [GET /spaces/{id}/equipment{?page,pageSize,sort}]
+Retrieves the collection of equipment that serve the specified space.
 
 + Parameters
     + page (number, optional) - The page number of items to return
@@ -685,7 +718,7 @@ Retrieves the collection of spaces that host the specified network device. A spa
     + pageSize (number, optional) - The maximum number of items to return in the response
         + Default: `100`
     + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
-        + Accepted Values: `itemReference`, `name`, `typeId`
+        + Accepted Values: `itemReference`, `name`, `type`
         + Default: `name`
 
 + Request
@@ -700,11 +733,45 @@ Retrieves the collection of spaces that host the specified network device. A spa
             Allow: GET
 
     + Attributes
-        + Include SpaceEntityCollection
-        + self:`/networkDevices/{id}/hostedBy{?queryParams}` (string) - A link to this space data set
+        + Include EquipmentEntityCollection
+        + self:`/spaces/{id}/equipment{?queryParams}` (string) - A link to this equipment collection
 
-### Get Network Device Attributes With Samples [GET /networkDevices/{id}/attributes]
-Retrieves a collection of attributes under the specified network device for which samples are available.
+Group Network Devices
+=====================
+
+This section contains information about network device-related resources as used within the Metasys API
+
+### Get Network Devices [GET /networkDevices{?type,page,pageSize,sort}]
+Retrieves a collection of network devices.
+
++ Parameters
+    + type (number, optional) - Type of network device to return
+        + See /networkDevices/availableTypes for possible values
+    + page (number, optional) - The page number of items to return
+        + Default: `1`
+    + pageSize (number, optional) - The maximum number of items to return in the response
+        + Default: `100`
+    + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
+        + Accepted Values: `categoryId`, `firmwareVersion`, `itemReference`, `name`, `typeId`
+        + Default: `name`
+
++ Request
+    + Headers
+
+            Accept: application/vnd.metasysapi.v1+json
+            Authorization: Bearer [token]
+
++ Response 200 (application/vnd.metasysapi.v1+json)
+    + Headers
+
+            Allow: GET
+
+    + Attributes 
+        + Include NetworkDeviceEntityCollection
+        + self:`/networkDevices{?queryParams}` (string) - A link to this network device collection
+
+### Get Network Device Types [GET /networkDevices/availableTypes]
+Retrieves the collection of all network device types.
 
 + Request
     + Headers
@@ -718,26 +785,15 @@ Retrieves a collection of attributes under the specified network device for whic
             Allow: GET
 
     + Attributes
-        + Include NetworkDeviceAttributeWithSamplesCollection
-        + self:`/networkDevices/{id}/attributes` - A link to this data set
+        + Include ItemCollection
+        + items (array[ObjectTypeEnum], fixed-type)
+        + self:`/networkDevices/availableTypes` - A link to this network device type collection
 
-### Get Samples For A Network Device Attribute [GET /networkDevices/{id}/attributes/{attributeId}/samples{?startTime,endTime,page,pageSize,sort}]
-Retrieves a collection of samples for the specified network device attribute during a particular date and time range.
-
-Note that the parent endpoint `/networkDevices/{id}/attributes/{attributeId}` is not currently implemented.
+### Get A Single Network Device [GET /networkDevices/{id}]
+Retrieves the specified network device.
 
 + Parameters
-    + attributeId (number) - The identifier of the attribute for which to retrieve sample information
-        + See /networkDevices/{id}/attributes for possible values
-    + startTime (string) - The ISO-8601 encoded dateTime representing the earliest sample to return
-    + endTime (string) - The ISO-8601 encoded dateTime representing the latest sample to return
-    + page (number, optional) - The page number of items to return
-        + Default: `1`
-    + pageSize (number, optional) - The maximum number of items to return in the response
-        + Default: `1000`
-    + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
-        + Accepted Values: `timestamp`
-        + Default: `timestamp`
+    + id (string) - The identifier of the network device
 
 + Request
     + Headers
@@ -750,33 +806,19 @@ Note that the parent endpoint `/networkDevices/{id}/attributes/{attributeId}` is
 
             Allow: GET
 
-    + Attributes(NetworkDeviceValueSamplesEntity)
+    + Attributes(NetworkDeviceEntity)
 
-### Get Alarms For A Network Device [GET /networkDevices/{id}/alarms{?startTime,endTime,priorityMinimum,priorityMaximum,type,excludePending,excludeAcknowledged,excludeDiscarded,attribute,page,pageSize,sort}]
-Retrieves a collection of alarms for the specified network device.
+### Get Network Device Children [GET /networkDevices/{id}/networkDevices{?page,pageSize,sort}]
+Retrieves the collection of network devices that are children of the specified network device.
 
 + Parameters
-    + startTime (string, optional) - The ISO-8601 encoded dateTime representing the earliest alarm to return
-    + endTime (string, optional) - The ISO-8601 encoded dateTime representing the latest alarm to return
-    + priorityMinimum (number, optional) - The minimum priority of the requested alarms
-    + priorityMaximum (number, optional) - The maximum priority of the requested alarms
-    + type (number, optional) - The type of the requested alarms
-        + See /enumSets/505/members for possible values.
-    + excludePending (boolean, optional) - The flag to exclude pending alarms
-        + Default: `false`
-    + excludeAcknowledged (boolean, optional) - The flag to exclude acknowledged alarms
-        + Default: `false`
-    + excludeDiscarded (boolean, optional) - The flag to exclude discarded alarms
-        + Default: `false`
-    + attribute (number, optional) - The attribute of the requested alarms
-        + See /enumSets/509/members for possible values
     + page (number, optional) - The page number of items to return
         + Default: `1`
     + pageSize (number, optional) - The maximum number of items to return in the response
         + Default: `100`
     + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
-        + Accepted Values: `priority`, `creationTime`
-        + Default: `creationTime`
+        + Accepted Values: `categoryId`, `firmwareVersion`, `itemReference`, `name`, `typeId`
+        + Default: `name`
 
 + Request
     + Headers
@@ -789,15 +831,72 @@ Retrieves a collection of alarms for the specified network device.
 
             Allow: GET
 
-    + Attributes(NetworkDeviceAlarmsEntity)
+    + Attributes 
+        + Include NetworkDeviceEntityCollection
+        + self:`/networkDevices/{id}/networkDevices{?queryParams}` (string) - A link to this network device collection
+
+### Get Network Devices Hosting An Equipment Instance [GET /equipment/{id}/networkDevices{?page,pageSize,sort}]
+Retrieves the collection of network devices that host the specified equipment instance, along with the parents of those network devices. A network device is considered to host an equipment if the equipment defines points that map to an attribute of any object contained on the network device.
+
++ Parameters
+    + page (number, optional) - The page number of items to return
+        + Default: `1`
+    + pageSize (number, optional) - The maximum number of items to return in the response
+        + Default: `100`
+    + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
+        + Accepted Values: `categoryId`, `firmwareVersion`, `itemReference`, `name`, `typeId`
+        + Default: `name`
+
++ Request
+    + Headers
+
+            Accept: application/vnd.metasysapi.v1+json
+            Authorization: Bearer [token]
+
++ Response 200 (application/vnd.metasysapi.v1+json)
+    + Headers
+
+            Allow: GET
+
+    + Attributes 
+        + Include NetworkDeviceEntityCollection
+        + self:`/equipment/{id}/networkDevices{?queryParams}` (string) - A link to this network device collection
+
+### Get Network Devices Serving A Space [GET /spaces/{id}/networkDevices{?page,pageSize,sort}]
+Retrieves the collection of network devices that are serving the specified space.
+A space is considered to be served by a network device is considered to host an equipment if any equipment instance serving the space defines points that map to an attribute of any object contained on the network device.
+
++ Parameters
+    + page (number, optional) - The page number of items to return
+        + Default: `1`
+    + pageSize (number, optional) - The maximum number of items to return in the response
+        + Default: `100`
+    + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
+        + Accepted Values: `categoryId`, `firmwareVersion`, `itemReference`, `name`, `typeId`
+        + Default: `name`
+
++ Request
+    + Headers
+
+            Accept: application/vnd.metasysapi.v1+json
+            Authorization: Bearer [token]
+
++ Response 200 (application/vnd.metasysapi.v1+json)
+    + Headers
+
+            Allow: GET
+
+    + Attributes
+        + Include NetworkDeviceEntityCollection
+        + self:`/spaces/{id}/networkDevices{?queryParams}` (string) - A link to this network device collection
 
 Group Objects
 ============
 
 This section contains information about object-related resources as used within the Metasys API.
 
-## Object Collection [/objects{?type,page,pageSize,sort}]
-A collection of all objects in the system.
+### Get Objects [GET /objects{?type,page,pageSize,sort}]
+Retrieves a collection of objects. Note that this endpoint requires the `type` parameter to be supplied; returning a list of all objects in the system is not currently supported.
 
 + Parameters
     + type (number) - Type of object to return
@@ -809,9 +908,6 @@ A collection of all objects in the system.
     + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
         + Accepted Values: `itemReference`, `name`, `typeId`
         + Default: `name`
-
-### Get Objects [GET]
-Retrieves a collection of objects. Note that this endpoint requires the `type` parameter to be supplied; returning a list of all objects in the system is not currently supported.
 
 + Request
     + Headers
@@ -826,17 +922,14 @@ Retrieves a collection of objects. Note that this endpoint requires the `type` p
 
     + Attributes
         + Include ObjectEntityCollection
-        + self:`/objects{?queryParams}` (string) - A link to this object data set
+        + self:`/objects{?queryParams}` (string) - A link to this object collection
 
-## Object [/objects/{id}]
-Represents a single item (object) in the system
+### Get A Single Object [GET /objects/{id}]
+Retrieves the specified object.
 
 + Parameters
     + id (string) - The identifier of the object
 
-### Get A Single Object [GET]
-Retrieves the specified object.
-
 + Request
     + Headers
 
@@ -851,24 +944,7 @@ Retrieves the specified object.
 
     + Attributes(ObjectEntity)
 
-### Get Object Parent [GET /objects/{id}/isChildOf]
-Retrieves the immediate parent of the specified object.
-
-+ Request
-    + Headers
-
-            Accept: application/vnd.metasysapi.v1+json
-            Authorization: Bearer [token]
-
-+ Response 200 (application/vnd.metasysapi.v1+json)
-
-    + Headers
-
-            Allow: GET
-
-    + Attributes(ObjectEntity)
-
-### Get Object Children [GET /objects/{id}/hasChildren{?page,pageSize,sort}]
+### Get Object Children [GET /objects/{id}/objects{?page,pageSize,sort}]
 Retrieves the children (recursively) of the specified object.
 
 + Parameters
@@ -894,10 +970,19 @@ Retrieves the children (recursively) of the specified object.
 
     + Attributes
         + Include ObjectEntityCollection
-        + self:`/objects/{id}/hasChildren{?queryParams}` (string) - A link to this object data set
+        + self:`/objects/{id}/objects{?queryParams}` (string) - A link to this object collection
 
-### Get Network Device Of An Object [GET /objects/{id}/usedByNetworkDevice]
-Retrieves the immediate parent network device that contains this object.
+### Get Network Device Children Objects [GET /networkDevices/{id}/objects{?page,pageSize,sort}]
+Retrieves the collection of objects that are children of the specified network device.
+
++ Parameters
+    + page (number, optional) - The page number of items to return
+        + Default: `1`
+    + pageSize (number, optional) - The maximum number of items to return in the response
+        + Default: `100`
+    + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
+        + Accepted Values: `itemReference`, `name`, `typeId`
+        + Default: `name`
 
 + Request
     + Headers
@@ -906,24 +991,32 @@ Retrieves the immediate parent network device that contains this object.
             Authorization: Bearer [token]
 
 + Response 200 (application/vnd.metasysapi.v1+json)
-
     + Headers
 
             Allow: GET
 
-    + Attributes(NetworkDeviceEntity)
+    + Attributes 
+        + Include ObjectEntityCollection
+        + self:`/networkDevices/{id}/objects{?queryParams}` (string) - A link to this object collection
 
-### Get Equipment Points Mapped To An Object [GET /objects/{id}/hasEquipmentMappings{?page,pageSize,sort}]
-Retrieves all equipment points mapped to attributes of this object.
+Group Spaces
+============
+
+This section contains information about space-related resources as used within the Metasys API.
+
+### Get Spaces [GET /spaces{?type,page,pageSize,sort}]
+Retrieves a collection of spaces.
 
 + Parameters
+    + type (number, optional) - Type of space to return
+        + See /enumSets/1766/members for possible values
     + page (number, optional) - The page number of items to return
         + Default: `1`
     + pageSize (number, optional) - The maximum number of items to return in the response
         + Default: `100`
     + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
-        + Accepted Values: `category`,`equipmentName`, `isDisplayData`, `shortName`
-        + Default: `shortName`
+        + Accepted Values: `itemReference`, `name`, `typeId`
+        + Default: `name`
 
 + Request
     + Headers
@@ -937,8 +1030,180 @@ Retrieves all equipment points mapped to attributes of this object.
             Allow: GET
 
     + Attributes
-        + Include EquipmentPointMappingCollection
-        + self:`/objects/{id}/hasEquipmentMappings{?queryParams}` (string) - A link to this equipment data set
+        + Include SpaceEntityCollection
+        + self:`/spaces{?queryParams}` (string) - A link to this space collection
+
+### Get A Single Space [GET /spaces/{id}]
+Retrieves the specified space.
+
++ Parameters
+    + id (string) - The identifier of the space
+
++ Request
+    + Headers
+
+            Accept: application/vnd.metasysapi.v1+json
+            Authorization: Bearer [token]
+
++ Response 200 (application/vnd.metasysapi.v1+json)
+    + Headers
+
+            Allow: GET
+
+    + Attributes (SpaceEntity)
+
+### Get Space Children [GET /spaces/{id}/spaces{?page,pageSize,sort}]
+Retrieves the collection of spaces that are located within the specified space.
+
++ Parameters
+    + page (number, optional) - The page number of items to return
+        + Default: `1`
+    + pageSize (number, optional) - The maximum number of items to return in the response
+        + Default: `100`
+    + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
+        + Accepted Values: `itemReference`, `name`, `typeId`
+        + Default: `name`
+
++ Request
+    + Headers
+
+            Accept: application/vnd.metasysapi.v1+json
+            Authorization: Bearer [token]
+
++ Response 200 (application/vnd.metasysapi.v1+json)
+    + Headers
+
+            Allow: GET
+
+    + Attributes
+        + Include SpaceEntityCollection
+        + self:`/spaces/{id}/spaces{?queryParams}` (string) - A link to this space collection.
+
+### Get Spaces Served By An Equipment Instance [GET /equipment/{id}/spaces{?page,pageSize,sort}]
+Retrieves the collection of spaces served by the specified equipment instance.
+
++ Parameters
+    + page (number, optional) - The page number of items to return
+        + Default: `1`
+    + pageSize (number, optional) - The maximum number of items to return in the response
+        + Default: `100`
+    + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
+        + Accepted Values: `itemReference`, `name`, `typeId`
+        + Default: `name`
+
++ Request
+    + Headers
+
+            Accept: application/vnd.metasysapi.v1+json
+            Authorization: Bearer [token]
+
++ Response 200 (application/vnd.metasysapi.v1+json)
+    + Headers
+
+            Allow: GET
+
+    + Attributes
+        + Include SpaceEntityCollection
+        + self:`/equipment/{id}/spaces{?queryParams}` (string) - A link to this space collection
+
+### Get Spaces Served by a Network Device [GET /networkDevices/{id}/spaces{?page,pageSize,sort}]
+Retrieves the collection of spaces served by the specified network device.
+A space is considered to be served by a network device if any equipment instance serving the space defines points that map to an attribute of any object contained on the network device.
+
++ Parameters
+    + page (number, optional) - The page number of items to return
+        + Default: `1`
+    + pageSize (number, optional) - The maximum number of items to return in the response
+        + Default: `100`
+    + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
+        + Accepted Values: `itemReference`, `name`, `typeId`
+        + Default: `name`
+
++ Request
+    + Headers
+
+            Accept: application/vnd.metasysapi.v1+json
+            Authorization: Bearer [token]
+
++ Response 200 (application/vnd.metasysapi.v1+json)
+    + Headers
+
+            Allow: GET
+
+    + Attributes
+        + Include SpaceEntityCollection
+        + self:`/networkDevices/{id}/spaces{?queryParams}` (string) - A link to this space collection
+
+Group Samples
+================
+
+This section contains information about samples as used within the Metasys API
+
+### Get Network Device Attributes With Samples [GET /networkDevices/{id}/attributes]
+Retrieves a collection of attributes under the specified network device for which samples are available.
+
++ Request
+    + Headers
+
+            Accept: application/vnd.metasysapi.v1+json
+            Authorization: Bearer [token]
+
++ Response 200 (application/vnd.metasysapi.v1+json)
+    + Headers
+
+            Allow: GET
+
+    + Attributes
+        + Include NetworkDeviceAttributeWithSamplesCollection
+        + self:`/networkDevices/{id}/attributes` - A link to this collection
+
+### Get Samples For A Network Device Attribute [GET /networkDevices/{id}/attributes/{attributeId}/samples{?startTime,endTime,page,pageSize,sort}]
+Retrieves a collection of samples for the specified network device attribute during a particular date and time range.
+
+Note that the parent endpoint `/networkDevices/{id}/attributes/{attributeId}` is not currently implemented.
+
++ Parameters
+    + attributeId (number) - The identifier of the attribute for which to retrieve sample information
+        + See /networkDevices/{id}/attributes for possible values
+    + startTime (string) - The ISO-8601 encoded dateTime representing the earliest sample to return
+    + endTime (string) - The ISO-8601 encoded dateTime representing the latest sample to return
+    + page (number, optional) - The page number of items to return
+        + Default: `1`
+    + pageSize (number, optional) - The maximum number of items to return in the response
+        + Default: `1000`
+    + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
+        + Accepted Values: `timestamp`
+        + Default: `timestamp`
+
++ Request Analog Samples
+    + Headers
+
+            Accept: application/vnd.metasysapi.v1+json
+            Authorization: Bearer [token]
+
++ Response 200 (application/vnd.metasysapi.v1+json)
+    + Headers
+
+            Allow: GET
+
+    + Attributes(NetworkDeviceValueSamplesEntity)
+      - items (array)
+          - (ValueSampleAnalog)
+
++ Request Digital Samples
+    + Headers
+
+            Accept: application/vnd.metasysapi.v1+json
+            Authorization: Bearer [token]
+
++ Response 200 (application/vnd.metasysapi.v1+json)
+    + Headers
+
+            Allow: GET
+
+    + Attributes (NetworkDeviceValueSamplesEntity)
+      - items (array)
+          - (ValueSampleDigital)
 
 ### Get Object Attributes With Samples [GET /objects/{id}/attributes]
 Retrieves a collection of attributes under the specified object for which samples are available.
@@ -956,7 +1221,7 @@ Retrieves a collection of attributes under the specified object for which sample
 
     + Attributes
         + Include ObjectAttributeWithSamplesCollection
-        + self:`/objects/{id}/attributes` - A link to this data set
+        + self:`/objects/{id}/attributes` - A link to this collection
 
 ### Get Samples For An Object Attribute [GET /objects/{id}/attributes/{attributeId}/samples{?startTime,endTime,page,pageSize,sort}]
 Retrieves a collection of samples for the specified object attribute during a particular date and time range.
@@ -976,7 +1241,7 @@ Note that the parent endpoint `/objects/{id}/attributes/{attributeId}` is not cu
         + Accepted Values: `timestamp`
         + Default: `timestamp`
 
-+ Request
++ Request Analog Samples
     + Headers
 
             Accept: application/vnd.metasysapi.v1+json
@@ -988,34 +1253,10 @@ Note that the parent endpoint `/objects/{id}/attributes/{attributeId}` is not cu
             Allow: GET
 
     + Attributes (ObjectValueSamplesEntity)
+      - items (array)
+          - (ValueSampleAnalog)
 
-### Get Alarms For An Object [GET /objects/{id}/alarms{?startTime,endTime,priorityMinimum,priorityMaximum,type,excludePending,excludeAcknowledged,excludeDiscarded,attribute,page,pageSize,sort}]
-Retrieves a collection of alarms for the specified object.
-
-+ Parameters
-    + startTime (string, optional) - The ISO-8601 encoded dateTime representing the earliest alarm to return
-    + endTime (string, optional) - The ISO-8601 encoded dateTime representing the latest alarm to return
-    + priorityMinimum (number, optional) - The minimum priority of the requested alarms
-    + priorityMaximum (number, optional) - The maximum priority of the requested alarms
-    + type (number, optional) - The type of the requested alarms
-        + See /enumSets/505/members for possible values.
-    + excludePending (boolean, optional) - The flag to exclude pending alarms
-        + Default: `false`
-    + excludeAcknowledged (boolean, optional) - The flag to exclude acknowledged alarms
-        + Default: `false`
-    + excludeDiscarded (boolean, optional) - The flag to exclude discarded alarms
-        + Default: `false`
-    + attribute (number, optional) - The attribute of the requested alarms
-        + See /enumSets/509/members for possible values
-    + page (number, optional) - The page number of items to return
-        + Default: `1`
-    + pageSize (number, optional) - The maximum number of items to return in the response
-        + Default: `100`
-    + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
-        + Accepted Values: `priority`, `creationTime`
-        + Default: `creationTime`
-
-+ Request
++ Request Digital Samples
     + Headers
 
             Accept: application/vnd.metasysapi.v1+json
@@ -1026,397 +1267,126 @@ Retrieves a collection of alarms for the specified object.
 
             Allow: GET
 
-    + Attributes (ObjectAlarmsEntity)
-
-### Get Activities For An Object [GET /objects/{id}/activities{?originApplications,classLevels,actions,ids,startTime,endTime,page,pageSize,sort,discarded}]
-Retrieves a collection of activities for the specified object. When using multiple filters, an AND evaluation is assumed.
-
-+ Parameters
-    + originApplications:`1,2` (string, optional) - Filter by comma-separated list of origin applications
-        + See /enumSets/578/members for possible values
-    + classLevels:`1,2` (string, optional) - Filter by comma-separated list of class levels
-        + See /enumSets/568/members for possible values
-    + actions:`1,2` (string, optional) - Filter by comma-separated list of the actions
-        + See /enumSets/577/members for possible values
-    + ids:`E1C28F29-90DC-464F-90DE-07DC08454E31,483FB3F7-6C65-4570-9DC2-01F4FD1A8F3A` (string, optional) -  Filter by comma-separated list of identifiers of the audits
-    + startTime:`2018-05-21T13:58:20.243Z` (string, optional) - The ISO-8601 encoded dateTime representing the earliest activity to return
-    + endTime:`2018-05-22T13:58:20.243Z` (string, optional) - The ISO-8601 encoded dateTime representing the latest activity to return
-    + discarded (boolean, optional) - Filter for activities that have been discarded. True = only discarded activities. False = only non-discarded activities.  Empty = all activities
-    + page (number, optional) - The page number of items to return
-        + Default: `1`
-    + pageSize (number, optional) - The maximum number of items to return in the response
-        + Default: `100`
-    + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
-        + Accepted Values: `creationTime`
-        + Default: `-creationTime`
-
-+ Request
-    + Headers
-
-            Accept: application/vnd.metasysapi.v1+json
-            Authorization: Bearer [token]
-
-+ Response 200 (application/vnd.metasysapi.v1+json)
-    + Headers
-
-            Allow: GET
-    + Attributes
-        + Include ActivityEntityCollection
-        + self:`/objects/{id}/activities{?queryParams}` (string) - A link to this activity data set
-
-Group Spaces
-============
-
-This section contains information about space-related resources as used within the Metasys API.
-
-## Space Collection [/spaces{?type,page,pageSize,sort}]
-A collection of all spaces
-
-+ Parameters
-    + type (number, optional) - Type of space to return
-        + See /enumSets/1766/members for possible values
-    + page (number, optional) - The page number of items to return
-        + Default: `1`
-    + pageSize (number, optional) - The maximum number of items to return in the response
-        + Default: `100`
-    + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
-        + Accepted Values: `itemReference`, `name`, `typeId`
-        + Default: `name`
-
-### Get Spaces [GET]
-Retrieves a collection of spaces.
-
-+ Request
-    + Headers
-
-            Accept: application/vnd.metasysapi.v1+json
-            Authorization: Bearer [token]
-
-+ Response 200 (application/vnd.metasysapi.v1+json)
-    + Headers
-
-            Allow: GET
-
-    + Attributes
-        + Include SpaceEntityCollection
-        + self:`/spaces{?queryParams}` (string) - A link to this space data set
-
-## Space [/spaces/{id}]
-A specific space in the system
-
-+ Parameters
-    + id (string) - The identifier of the space
-
-### Get A Single Space [GET]
-Retrieves the specified space.
-
-+ Request
-    + Headers
-
-            Accept: application/vnd.metasysapi.v1+json
-            Authorization: Bearer [token]
-
-+ Response 200 (application/vnd.metasysapi.v1+json)
-    + Headers
-
-            Allow: GET
-
-    + Attributes (SpaceEntity)
-
-### Get Equipment Serving A Space [GET /spaces/{id}/servedBy{?page,pageSize,sort}]
-Retrieves the collection of equipment that serve the specified space.
-
-+ Parameters
-    + page (number, optional) - The page number of items to return
-        + Default: `1`
-    + pageSize (number, optional) - The maximum number of items to return in the response
-        + Default: `100`
-    + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
-        + Accepted Values: `itemReference`, `name`, `type`
-        + Default: `name`
-
-+ Request
-    + Headers
-
-            Accept: application/vnd.metasysapi.v1+json
-            Authorization: Bearer [token]
-
-+ Response 200 (application/vnd.metasysapi.v1+json)
-    + Headers
-
-            Allow: GET
-
-    + Attributes
-        + Include EquipmentEntityCollection
-        + self:`/spaces/{id}/servedBy{?queryParams}` (string) - A link to this equipment data set
-
-### Get Space Parent [GET /spaces/{id}/isLocatedIn]
-Retrieves the space that is the parent of the specified space.
-
-+ Parameters
-    + id (string) - The identifier of the equipment for which to retrieve serving equipment
-
-+ Request
-    + Headers
-
-            Accept: application/vnd.metasysapi.v1+json
-            Authorization: Bearer [token]
-
-+ Response 200 (application/vnd.metasysapi.v1+json)
-    + Headers
-
-            Allow: GET
-
-    + Attributes (SpaceEntity)
-
-### Get Space Children [GET /spaces/{id}/contains{?page,pageSize,sort}]
-Retrieves the collection of spaces that are located in the specified space.
-
-+ Parameters
-    + page (number, optional) - The page number of items to return
-        + Default: `1`
-    + pageSize (number, optional) - The maximum number of items to return in the response
-        + Default: `100`
-    + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
-        + Accepted Values: `itemReference`, `name`, `typeId`
-        + Default: `name`
-
-+ Request
-    + Headers
-
-            Accept: application/vnd.metasysapi.v1+json
-            Authorization: Bearer [token]
-
-+ Response 200 (application/vnd.metasysapi.v1+json)
-    + Headers
-
-            Allow: GET
-
-    + Attributes
-        + Include SpaceEntityCollection
-        + self:`/spaces/{id}/contains{?queryParams}` (string) - A link to this space data set
-
-### Get Network Devices Hosted By A Space [GET /spaces/{id}/hosts{?page,pageSize,sort}]
-Retrieves the collection of network devices that are hosted by the specified space. A space is considered to host a network device is considered to host an equipment if any equipment instance serving the space defines points that map to an attribute of any object contained on the network device.
-
-+ Parameters
-    + page (number, optional) - The page number of items to return
-        + Default: `1`
-    + pageSize (number, optional) - The maximum number of items to return in the response
-        + Default: `100`
-    + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
-        + Accepted Values: `categoryId`, `firmwareVersion`, `itemReference`, `name`, `typeId`
-        + Default: `name`
-
-+ Request
-    + Headers
-
-            Accept: application/vnd.metasysapi.v1+json
-            Authorization: Bearer [token]
-
-+ Response 200 (application/vnd.metasysapi.v1+json)
-    + Headers
-
-            Allow: GET
-
-    + Attributes
-        + Include NetworkDeviceEntityCollection
-        + self:`/spaces/{id}/hosts{?queryParams}` (string) - A link to this network device data set
+    + Attributes (ObjectValueSamplesEntity)
+      - items (array)
+          - (ValueSampleDigital)
 
 # Data Structures
-
-## Signature
-+ fullName:`John Smith` (string) - The name of the person "signing"
-+ reason (string) - The reason for signing
 
 ## ItemCollection
 + total:`1` (number) - The total number of items in the collection
 + items (object) - The collection of items
-+ next:`[link to next page]` (string) - A link to the next page of results
-+ previous:`[link to previous page]` (string) - A link to the previous page of results
+
+## PagedItemCollection
++ total:`1` (number) - The total number of items in the collection
++ items (object) - The collection of items
++ next:`[link to next page]` (string, nullable) - A link to the next page of results
++ previous:`[link to previous page]` (string, nullable) - A link to the previous page of results
 
 ## BaseObject (object)
 + id:`00000000-0000-0000-0000-000000000000` (string) - The identifier of the object
 + itemReference:`site:device/itemReference` (string) - The fully qualified reference of the object
 + name (string) - The name of the object
 
-## SpaceLinkCollection
-+ Include ItemCollection
-+ items:`[/spaces/{id}]` (array[string]) - The collection of space links
+## Data
++ value:`0`,`False`,`19` (string) - The past or present value of the audit
++ type:`/enumSets/501/members/1` (string) - The type of data value should be parsed into.  See /enumSets/501/members for possible values
++ unit:`/enumSets/507/members/1` (string) - The unit of measurement this data uses. See /enumSets/507/members for possible values
++ precision:`/enumSets/0/members/1` (string) - The precision, number of decimal places, this data uses. See /enumSets/0/members for possible values
 
-## SpaceEntity
-+ Include SpaceData
-+ Include SpaceRelationshipLinks
+## LegacyMetasys
++ fullyQualifiedItemReference (string) - The fully qualified item reference of the object that created this audit
++ itemName (string) - The short name of the object that created this audit
++ classLevel (string) - Indicates the class level in which this audit belongs. See /enumSets/568/members for possible values
++ originApplication (string) - Indicates the application that performed action that generated this audit. See /enumSets/578/members for possible values
++ description (string) - Provides the description of the action that generated this audit. See /enumSets/580/members for possible values
 
-## SpaceEntityCollection
-+ Include ItemCollection
-+ items (array[SpaceEntity], fixed-type) - The collection of spaces
+## Signature
++ fullName:`John Smith` (string) - The name of the person "signing"
++ reason (string) - The reason for signing
 
-## SpaceData
+## TokenRequestBase
++ `client_id`: `metasys_ui` (string, required) - Accepted Values: `metasys_ui`. The client's identifier with respect to the authentication service.
++ client_secret: `secret` (string, required) - Accepted Values: `secret`. The secret key for client authentication, a placeholder.
++ scope: `metasys_api openid offline_access` (string, required) - Accepted Values: `metasys_api`, `openid`, `offline_access`. The `openid` value that specifies behavior from what is being requested and how the token will be used. `metasys_api` defines the scope of the resource the user is asking for; `openid` is required by OpenIDConnect; `offline_access` allows for retrieving a refresh token for sliding expiration.
++ `grant_type`: `password` (string, required) - Accepted Values: `password`, `refresh_token`. Use `password` for initial login. Use `refresh_token` to refresh access token.
+
+## TokenRequestLogin
++ Include TokenRequestBase
++ username (string, required) - {Metasys Username} 
++ password (string, required) - {Metasys Password}
+
+## TokenRequestRefresh
++ Include TokenRequestBase
++ `refresh_token` (string, required) - The refresh token that was received at login.
+
+## TokenResponse
++ access_token (string) - The access token which must be included in an Authorization header on all calls requiring authentication. 
++ expires_in (number) - Seconds to Expiration
++ token_type (string) - Indicates the type of token. This will always be *Bearer*
++ `refresh_token` (string) - The refresh token is used to extend a session. A refresh token is only returned if `offline_access` is included in `scope` when making requests of `/connect/token`.
+
+## RefreshTokenResponse
++ Include TokenResponse
++ id_token (string) - Identity Token
+
+## AuditEntityCollection
++ Include PagedItemCollection
++ items (array[AuditEntity], fixed-type) - The collection of audits
+
+## AuditEntity
++ id:`00000000-0000-0000-0000-000000000000` (string) - The identifier of the audit
++ creationTime:`2017-09-18T08:11:28Z` (string) - The ISO-8601 encoded dateTime representing the creation time when this audit message was created
++ actionType:`/enumSets/577/members/1` (string) - The action performed that initiated the audit. See /enumSets/577/members for possible values
++ discarded (boolean) - Indicates if the audit has been discarded
++ status:`/enumSets/516/members/1` (string) - Enumeration representing status. See /enumSets/516/members for possible values
++ preData (Data) - Data value prior to the Audit
++ postData (Data) - Data value after the Audit
++ parameters (array[Data], fixed-type) The actual data that is changing
++ errorString (string) - The error that may have occurred during an audit
++ user (string) - The userName of the user that initiated the audit
++ signature (Signature) - The user who created this audit
++ object:`/objects/{id}` (string) - A link to the object on which the activity was generated
++ self:`/audits/{id}` (string) - A link to this audit
++ annotations:`/audits/{id}/annotations` (string) - Link to annotations
++ legacy (LegacyMetasys) - Metasys specific data
+
+## AlarmEntityDigital
++ Include AlarmEntity
++ triggerValue (DigitalValueAlarm)- The digital value of the attribute of the object on which the alarm was triggered
+
+## AlarmEntityAnalog
++ Include AlarmEntity
++ triggerValue (AnalogValueAlarm)- The analog value of the attribute of the object on which the alarm was triggered
+
+## AlarmEntity
 + Include BaseObject
-+ name (string) - The name of the space
-+ type:`/enumSets/{id}/members/{memberId}` (string) - A link to the type of space
++ message (string) - The alarm message
++ isAckRequired (boolean) - Indicates whether an acknowledgment is required on the alarm
++ type:`/enumSets/{id}/members/{memberId}` (string) - A link to the enum member for the type of alarm
++ priority (number) - The priority of the alarm
++ creationTime:`2000-01-01T12:00:00Z` (string) - The ISO-8601 encoded timestamp for when the alarm was detected
++ isAcknowledged (boolean) - Indicates whether the alarm has been acknowledged
++ isDiscarded (boolean) - Indicates whether the alarm has been discarded
++ category:`/enumSets/{id}/members/{memberId}` (string) - A link to the authorization category of the object when the alarm was generated
++ object:`/objects/{id}` (string) - A link to the object from which this alarm was generated
++ attribute:`/enumSets/509/members/{memberId}` (string) - A link to the attribute for which this alarm was generated
++ annotations:`/alarms/{id}/annotations` (string) - A link to the annotations available on the alarm
++ self:`/alarms/{id}` (string) - A link to this collection of alarms
 
-## SpaceRelationshipLinks
-+ self:`/spaces/{id}` (string) - A link to this space
-+ isLocatedIn:`/spaces/{id}` (string) - A link to the space in which this space is located
-+ contains:`/spaces/{id}/contains` (string) - A link to the spaces contained within this space
-+ servedBy:`/spaces/{id}/servedBy` (string) - A link to the equipment instances serving this space
-+ hosts:`/spaces/{id}/hosts` (string) - A link to the network devices hosted by this space
+## AlarmEntityCollection
++ Include PagedItemCollection
++ items (array) - The collection of alarms
+    - (AlarmEntityAnalog)
+    - (AlarmEntityDigital)
 
-## EquipmentLinkCollection
-+ Include ItemCollection
-+ items:`[/equipment/{id}]` (array[string]) - The collection of equipment links
+## AnalogValueAlarm
++ value:`68.9` (number) - The value of the attribute of the object on which the alarm was triggered
++ units:`/enumSets/{id}/members/{memberId}` (string) - A link to the units of the object on which the alarm was triggered
 
-## EquipmentEntity
-+ Include EquipmentData
-+ Include EquipmentRelationshipLinks
-
-## EquipmentEntityCollection
-+ Include ItemCollection
-+ items (array[EquipmentEntity], fixed-type) - The collection of equipment instances
-
-## EquipmentData
-+ Include BaseObject
-+ name (string) - The full name of the equipment instance
-+ type:`AHU` (string) - The name of the equipment definition for this equipment instance
-
-## EquipmentRelationshipLinks
-+ self:`/equipment/{id}` (string) - A link to this equipment instance
-+ spacesServed:`/equipment/{id}/spacesServed` (string) - A link to the spaces served by this equipment instance
-+ equipmentServed:`/equipment/{id}/equipmentServed` (string) - A link to the equipment served by this equipment instance
-+ servedBy:`/equipment/{id}/servedBy` (string) - A link to the equipment that serves this equipment instance
-+ hostedBy:`/equipment/{id}/hostedBy` (string) - A link to the network devices that host this equipment instance
-+ hasMappings:`/equipment/{id}/hasMappings` (string) - A link to the point mappings defined by this equipment instance
-
-## EquipmentPointMappingEntity
-+ Include EquipmentPointMappingData
-+ Include EquipmentPointMappingRelationshipLinks
-
-## EquipmentPointMappingCollection
-+ Include ItemCollection
-+ items (array[EquipmentPointMappingEntity], fixed-type) - The collection of equipment point mappings
-
-## EquipmentPointMappingData
-+ equipmentName (string) - The name of the mapped equipment
-+ shortName:`ZN-T` (string) - The short name for the equipment point
-+ label:`Zone Temperature` (string) - The label for the equipment point
-+ category (string) - The category for the equipment point
-+ isDisplayData (boolean) - Whether the equipment point is marked as display data
-
-## EquipmentPointMappingRelationshipLinks
-+ mappedEquipment:`/equipment/{id}` (string) - A link to the mapped equipment
-+ mappedObject:`/objects/{id}` (string) - A link to the mapped object
-+ mappedAttribute:`/enumSets/509/members/{memberId}` (string) - A link to the mapped attribute
-
-## NetworkDeviceLinkCollection
-+ Include ItemCollection
-+ items:`/networkDevices/{id}` (array[string]) - The collection of network device links
-
-## NetworkDeviceEntity
-+ Include NetworkDeviceData
-+ Include NetworkDeviceRelationshipLinks
-
-## NetworkDeviceEntityCollection
-+ Include ItemCollection
-+ items (array[NetworkDeviceEntity], fixed-type) - The collection of network devices
-
-## NetworkDeviceData
-+ Include BaseObject
-+ name (string) - The name of the network device
-+ type:`/enumSets/{id}/members/{memberId}` (string) - A link to the type of network device
-+ description (string) - The description for the network device
-+ firmwareVersion:`10.0.0` (string) - The firmware version for the network device
-+ category:`/enumSets/{id}/members/{memberId}` (string) - A link to the authorization category for the network device
-+ timeZone:`/enumSets/{id}/members/{memberId}` (string) - A link to the time zone in which the device is located
-
-## NetworkDeviceRelationshipLinks
-+ self:`/networkDevices/{id}` (string) - The link to the network device
-+ isChildOf:`/networkDevices/{id}` (string) - A link to the network device that is the parent of this network device
-+ hasChildren:`/networkDevices/{id}/hasChildren` (string) - A link to the network devices that are children of this network device
-+ hosts:`/networkDevices/{id}/hosts` (string) - A link to the equipment instances hosted by this network device
-+ hostedBy:`/networkDevices/{id}/hostedBy` (string) - A link to the spaces that host this network device
-+ uses:`/networkDevices/{id}/uses` (string) - A link to the objects contained within this network device
-+ attributes:`/networkDevices/{id}/attributes` (string) - A link to the attributes on this network device for which samples are available
-+ alarms:`/networkDevices/{id}/alarms` (string) - A link to the alarms available for this network device
-
-## ObjectLinkCollection
-+ Include ItemCollection
-+ items:`[/objects/{id}]` (array[string]) - The collection of object links
-
-## ObjectEntity
-+ Include ObjectData
-+ Include ObjectRelationshipLinks
-
-## ObjectEntityCollection
-+ Include ItemCollection
-+ items (array[ObjectEntity], fixed-type) - The collection of objects
-
-## ObjectData
-+ Include BaseObject
-+ name (string) - The name of the object
-+ type:`enumSets/{id}/members/{memberId}` (string) - A link to the type of object
-
-## ObjectRelationshipLinks
-+ self (string) - A link to this object
-+ isChildOf:`/objects/{id}/isChildOf` (string) - A link to the parent of this object
-+ hasChildren:`/objects/{id}/hasChildren` (string) - A link to the children of this object
-+ usedByNetworkDevice:`/objects/{id}/usedByNetworkDevice` (string) - A link to the network device that contains this object
-+ hasEquipmentMappings:`/objects/{id}/hasEquipmentMappings` (string) - A link to all equipment point mappings defined for this object
-+ attributes:`/objects/{id}/attributes` (string) - A link to the attributes on this object for which samples are available
-+ alarms:`/objects/{id}/alarms` (string) - A link to the alarms generated by this object
-
-## ObjectAttributeWithSamples
-+ samples:`/objects/{id}/attributes/{attributeId}/samples` (string) - A link to this collection of object value samples
-+ attribute:`enumSets/{id}/members/{memberId}` (string) - A link to the attribute on which the samples were taken
-
-## NetworkDeviceAttributeWithSamples
-+ samples:`/networkDevice/{id}/attributes/{attributeId}/samples` (string) - A link to the collection of network device value samples
-+ attribute:`enumSets/{id}/members/{memberId}` (string) - A link to the attribute on which the samples were taken
-
-## ObjectValueSamplesEntity
-+ Include ValueSamplesData
-+ Include ObjectValueSamplesRelationshipLinks
-
-## NetworkDeviceValueSamplesEntity
-+ Include ValueSamplesData
-+ Include NetworkDeviceValueSamplesRelationshipLinks
-
-## ObjectAttributeWithSamplesCollection
-+ Include ItemCollection
-+ items (array[ObjectAttributeWithSamples], fixed-type) - The collection of available samples
-
-## NetworkDeviceAttributeWithSamplesCollection
-+ Include ItemCollection
-+ items (array[NetworkDeviceAttributeWithSamples], fixed-type) - The collection of available samples
-
-## ValueSamplesData
-+ Include ItemCollection
-+ items (array[ValueSample], fixed-type) - The collection of samples
-+ attribute:`/enumSets/509/members/{memberId}` - A link to the attribute for which the samples were generated
-
-## ObjectValueSamplesRelationshipLinks
-+ self:`/objects/{id}/attributes/{attributeId}/samples` (string) - A link to this collection of object value samples
-+ object:`/objects/{id}` (string) - A link to the object from which these samples were generated
-
-## NetworkDeviceValueSamplesRelationshipLinks
-+ self:`/networkDevice/{id}/attributes/{attributeId}/samples` (string) - A link to this collection of network device value samples
-+ networkDevice:`/networkDevices/{id}` (string) - A link to the network device from which these samples were generated
-
-## ValueSample
-+ One Of
-    + value (AnalogValueSampleRaw) - The sample value
-    + value (DigitalValuesSampleRaw) - The sample value
-+ timestamp:`2000-01-01T12:00:00Z` (string) - The ISO-8601 encoded timestamp for when the sample was recorded
-+ isReliable (boolean) - The flag indicating whether the source of the sample was in a reliable state when the sample was recorded
-
-## AnalogValueSampleRaw
-+ value:`68.9` (number) - The value of the sample
-+ units:`/enumSets/{id}/members/{memberId}` (string) - A link to the units of the sample
-
-## DigitalValuesSampleRaw
-+ value:`1` (number) - The value of the sample
-+ valueEnumMember:`/enumSets/{id}/members/{memberId}` (string) - A link to the enum member for the sample value
+## DigitalValueAlarm
++ value:`1` (number) - The value of the attribute of the object on which the alarm was triggered
++ valueEnumMember:`/enumSets/{id}/members/{memberId}` (string) - A link to the enum member for the alarm trigger value
 
 ## NetworkDeviceAlarmsRelationshipLinks
 + self:`/networkDevices/{id}/alarms` (string) - A link to this collection of network device alarms
@@ -1434,17 +1404,9 @@ Retrieves the collection of network devices that are hosted by the specified spa
 + Include AlarmEntityCollection
 + Include NetworkDeviceAlarmsRelationshipLinks
 
-## NetworkDeviceAnnotationsRelationshipLinks
-+ self:`/networkDevices/{id}/alarms/{alarmId}/annotations` (string) - A link to this collection of network device alarm annotations
-+ networkDeviceAlarm:`/networkDevices/{id}/alarms/{alarmId}` (string) - A link to the alarm on the network device on which these annotations were created on
-
-## NetworkDeviceAlarmAnnotationsEntity
-+ Include AlarmAnnotationEntityCollection
-+ Include NetworkDeviceAnnotationsRelationshipLinks
-
 ## ObjectAlarmsRelationshipLinks
 + self:`/objects/{id}/alarms` (string) - A link to this collection of object alarms
-+ object:`/objects/{id}` (string) - A link to the object from which which this alarm was generated
++ objectGenerating:`/objects/{id}` (string) - A link to the object from which which this alarm was generated
 
 ## ObjectAlarmRelationshipLinks
 + self:`/objects/{id}/alarms/{alarmId}` (string) - A link to this object alarm
@@ -1458,129 +1420,42 @@ Retrieves the collection of network devices that are hosted by the specified spa
 + Include AlarmEntityCollection
 + Include ObjectAlarmsRelationshipLinks
 
-## ObjectAnnotationsRelationshipLinks
-+ self:`/objects/{id}/alarms/{alarmId}/annotations` (string) - A link to this collection of object alarm annotations
-+ objectAlarm:`/objects/{id}/alarms/{alarmId}` (string) - A link to the alarm on the object on which these annotations were created on
-
-## ObjectAlarmAnnotationsEntity
-+ Include ObjectEntityCollection
-+ Include ObjectAnnotationsRelationshipLinks
-
-## AlarmEntity
-+ Include BaseObject
-+ message (string) - The alarm message
-+ isAckRequired (boolean) - Indicates whether an acknowledgment is required on the alarm
-+ type:`/enumSets/{id}/members/{memberId}` (string) - A link to the enum member for the type of alarm
-+ priority (number) - The priority of the alarm
-+ One Of
-    + triggerValue (AnalogValueAlarm) - The value of the attribute of the object on which the alarm was triggered
-    + triggerValue (DigitalValueAlarm) - The value of the attribute of the object on which the alarm was triggered
-+ creationTime:`2000-01-01T12:00:00Z` (string) - The ISO-8601 encoded timestamp for when the alarm was detected
-+ isAcknowledged (boolean) - Indicates whether the alarm has been acknowledged
-+ isDiscarded (boolean) - Indicates whether the alarm has been discarded
-+ category:`/enumSets/{id}/members/{memberId}` (string) - A link to the authorization category of the object when the alarm was generated
-+ object:`/objects/{id}` (string) - A link to the object from which this alarm was generated
-+ attribute:`/enumSets/509/members/{memberId}` (string) - A link to the attribute for which this alarm was generated
-+ annotations:`/alarms/{id}/annotations` (string) - A link to the annotations available on the alarm
-+ self:`/alarms/{id}` (string) - A link to this collection of alarms
-
-## AlarmEntityCollection
-+ Include ItemCollection
-+ items (array[AlarmEntity], fixed-type) - The collection of alarms
-
 ## AlarmAnnotationEntityCollection
-+ Include ItemCollection
++ Include PagedItemCollection
 + items (array[AlarmAnnotationEntity], fixed-type) - The collection of annotations for an alarm
 
 ## AlarmAnnotationEntity
 + text (string) - The annotation text
 + user (string) - The user who annotated the alarm
 + creationTime:`2000-01-01T12:00:00Z` (string) - The ISO-8601 encoded timestamp for when the annotation on the alarm was created
-+ action (AlarmActionEnum): The enum for the alarm action on which the annotation was created. In case of the annotation was not created during an alarm action, the set of the enum will be zero.
++ action (AnnotationActionEnum) - The alarm action on which the annotation was created. In case if the annotation was not created during an alarm action, the default value will be "none"
 + alarm:`/alarms/{id}` (string)  - A link to the alarm
 
-## AnalogValueAlarm
-+ value:`68.9` (number) - The value of the attribute of the object on which the alarm was triggered
-+ units:`/enumSets/{id}/members/{memberId}` (string) - A link to the units of the object on which the alarm was triggered
+## AuditAnnotationEntityCollection
++ Include PagedItemCollection
++ items (array[AuditAnnotationEntity], fixed-type) - The collection of audit annotations
 
-## DigitalValueAlarm
-+ value:`1` (number) - The value of the attribute of the object on which the alarm was triggered
-+ valueEnumMember:`/enumSets/{id}/members/{memberId}` (string) - A link to the enum member for the alarm trigger value
+## AuditAnnotationEntity
++ id:`00000000-0000-0000-0000-000000000000` (string) - The identifier of the audit annotation
++ creationTime:`2017-09-18T08:11:28Z` (string) - The ISO-8601 encoded dateTime representing the creation time when this audit annotation 
++ user (string) - The user name of the user that initiated the audit annotation
++ text (string) - The text of the audit annotation
++ signature (Signature) - The user who created this audit annotation
++ action (AnnotationActionEnum) - The action on which the annotation was created. In case if the annotation was not created during an action, the default value will be "none"
 
-## ActivityEntityCollection
-+ Include ItemCollection
-+ items (array[ActivityEntity], fixed-type) - The collection of alarms
-
-## ActivityEntity
-+ id:`00000000-0000-0000-0000-000000000000` (string) - The identifier of the activity
-+ productName (JciProductName) - The Product enum value of this activity message
-+ creationTime:`2017-09-18T08:11:28Z` (string) - The ISO-8601 encoded dateTime representing the creation time when this activity message was created
-+ actionType (ProductEnumeration) - See ProductEnumeration
-    + See /enumSets/577/members for possible values
-+ discarded (boolean) - Indicates if the activity has been discarded
-+ status (ProductEnumeration) - Enumeration representing status
-    + See /enumSets/516/members for possible values
-+ preData (Data) - Data value prior to the Activity
-+ postData (Data) - Data value after the Activity
-+ parameters (array[Data], fixed-type) The actual data that is changing
-+ errorString (string) - The error that may have occurred during an activity
-+ user (string) - The userName of the user that initiated the activity
-+ signature (Signature) - The user who created this activity
-+ object:`/objects/{id}` (string) - A link to the object on which the activity was generated
-+ self:`/activities/{id}` (string) - A link to this activity
-+ annotations:`/activities/{id}/annotations` (string) - Link to annotations
-+ legacy (LegacyMetasys) - Metasys specific data
-
-## ProductEnumeration
-+ enumSetId (number) - The enumeration set identifier
-+ enumMemberId (number) - The enumeration member
-
-## Data
-+ value (string) - The data value
-+ type (string) -  The data type
-+ additionalData:`"unit":"2", "precision":"1"` (string) - Key value pairs of any additional data
-
-## ActivityMessageEditMethod (enum)
-+ `0` - Unknown
-+ `1` - Manual
-+ `2` - Automated
-+ `3` - Imported
-+ `4` - GenericPersonAsOperator
-
-## ObjectDefinition
-+ primaryObjectId (string) - the primary identifier
-+ primaryObjectType (string) - the object type value
-+ primaryObjectOriginatingProduct (JciProductName) - the enum value of the product
-
-## User
-+ name (string) - The user name
-+ identifier (string) - The identifier for the user
-
-## Legacy
-+ productName (JciProductName) - The name of the JCI product
-
-## LegacyMetasys
-+ Include Legacy
-+ fullyQualifiedItemReference (string) - The fully qualified item reference of the object that created this activity
-+ itemName (string) - The short name of the object that created this activity
-+ classLevel (ProductEnumeration) - Indicates the class level in which this activity belongs
-    + See /enumSets/568/members for possible values
-+ originApplication (ProductEnumeration) - Indicates the application that performed action that generated this activity
-    + See /enumSets/578/members for possible values
-+ description (ProductEnumeration) - Provides the description of the action that generated this activity
-    + See /enumSets/580/members for possible values
-
-## JciProductName (enum)
-+ '0' - Metasys
-+ '1' - CCURE
-+ '2' - Victor
+## AnnotationActionEnum (enum)
++ 'none' - Indicates an annotation that was added as part of non AnnotationActionEnum action
++ 'acknowledged' - Indicates an annotation that was added as part of a acknowledged action
++ 'completed' - Indicates an annotation that was added as part of a completed action
++ 'discarded' - Indicates an annotation that was added as part of a discarded action
++ 'snoozed' - Indicates an annotation that was added as part of a snooze action
 
 ## EnumSet
 + Include EnumSetData
 + Include EnumSetRelationships
 
 ## EnumSetCollection
-+ Include ItemCollection
++ Include PagedItemCollection
 + items (array[EnumSet], fixed-type) - The collection of enum sets
 
 ## EnumSetData
@@ -1596,7 +1471,7 @@ Retrieves the collection of network devices that are hosted by the specified spa
 + Include EnumMemberRelationships
 
 ## EnumMemberCollection
-+ Include ItemCollection
++ Include PagedItemCollection
 + items (array[EnumMember], fixed-type) - The collection of enum members
 
 ## EnumMemberData
@@ -1656,100 +1531,183 @@ Retrieves the collection of network devices that are hosted by the specified spa
 + self:`/enumSets/505/members/38` (string) - A link to the object status enum member
 + set:`/enumSets/505` (string, fixed) - A link to the object status enum set
 
-## AlarmActionEnum
-+ Include EnumMember
-+ id:`64` (number) - The identifier for the action
-+ description:`deg F` (string) - The description of the action
-+ self:`/enumSets/xxxx/members/1` - A link to the alarm action enum member
-+ set:`/enumSets/xxxx` (fixed) - A link to the alarm action enum set
+## EquipmentLinkCollection
++ Include PagedItemCollection
++ items:`[/equipment/{id}]` (array[string], fixed-type) - The collection of equipment links
 
-## TokenRequestBase
-+ `client_id`: `metasys_ui` (string, required) - Accepted Values: `metasys_ui`. The client's identifier with respect to the authentication service.
-+ client_secret: `secret` (string, required) - Accepted Values: `secret`. The secret key for client authentication, a placeholder.
-+ scope: `metasys_api openid offline_access` (string, required) - Accepted Values: `metasys_api`, `openid`, `offline_access`. The `openid` value that specifies behavior from what is being requested and how the token will be used. `metasys_api` defines the scope of the resource the user is asking for; `openid` is required by OpenIDConnect; `offline_access` allows for retrieving a refresh token for sliding expiration.
-+ `grant_type`: `password` (string, required) - Accepted Values: `password`, `refresh_token`. Use `password` for initial login. Use `refresh_token` to refresh access token.
+## EquipmentEntity
++ Include EquipmentData
++ Include EquipmentRelationshipLinks
 
-## TokenRequestLogin
-+ Include TokenRequestBase
-+ username (string, required) - {Metasys Username} 
-+ password (string, required) - {Metasys Password}
+## EquipmentEntityCollection
++ Include PagedItemCollection
++ items (array[EquipmentEntity], fixed-type) - The collection of equipment instances
 
-## TokenRequestRefresh
-+ Include TokenRequestBase
-+ `refresh_token` (string, required) - The refresh token that was received at login.
+## EquipmentData
++ Include BaseObject
++ name (string) - The full name of the equipment instance
++ type:`AHU` (string) - The name of the equipment definition for this equipment instance
 
-## TokenResponse
-+ access_token (string) - The access token which must be included in an Authorization header on all calls requiring authentication. 
-+ expires_in (number) - Seconds to Expiration
-+ token_type (string) - Indicates the type of token. This will always be *Bearer*
-+ `refresh_token` (string) - The refresh token is used to extend a session. A refresh token is only returned if `offline_access` is included in `scope` when making requests of `/Authentication/LogIn`.
+## EquipmentRelationshipLinks
++ self:`/equipment/{id}` (string) - A link to this equipment instance
++ spaces:`/equipment/{id}/spaces` (string) - A link to the spaces served by this equipment instance
++ equipment:`/equipment/{id}/equipment` (string) - A link to the equipment served by this equipment instance
++ upstreamEquipment:`/equipment/{id}/upstreamEquipment` (string) - A link to the equipment that serves this equipment instance
++ networkDevices:`/equipment/{id}/networkDevices` (string) - A link to the network devices that host this equipment instance
++ points:`/equipment/{id}/points` (string) - A link to the point mappings defined by this equipment instance
 
-## RefreshTokenResponse
-+ Include TokenResponse
-+ id_token (string) - Identity Token
+## EquipmentPointMappingEntity
++ Include EquipmentPointMappingData
++ Include EquipmentPointMappingRelationshipLinks
 
+## EquipmentPointMappingCollection
++ Include PagedItemCollection
++ items (array[EquipmentPointMappingEntity], fixed-type) - The collection of equipment point mappings
 
+## EquipmentPointMappingData
++ equipmentName (string) - The name of the mapped equipment
++ shortName:`ZN-T` (string) - The short name for the equipment point
++ label:`Zone Temperature` (string) - The label for the equipment point
++ category (string) - The category for the equipment point
++ isDisplayData (boolean) - Whether the equipment point is marked as display data
 
-Group Authentications for me
-====================
+## EquipmentPointMappingRelationshipLinks
++ equipment:`/equipment/{id}` (string) - A link to the mapped equipment
++ object:`/objects/{id}` (string) - A link to the mapped object
++ attribute:`/enumSets/509/members/{memberId}` (string) - A link to the mapped attribute
 
-This section contains authentication-related methods to acquire and use an access token (JWT format) with
-any and all of the micro-services.  The access token contains the standard JWT claims, plus several single-value
-claims.  Authorization-related claims are retrieved from the `userinfo` endpoint.  The expiration of the access
-token is based on the Metasys user profile.  The expiration of the refresh token is currently set to 5 hours, which is
-the maximum length of the Metasys user session (300 minutes) when not "Never Terminate".  The refresh token has a
-sliding expiration and it is allowed multiple uses and is advanced as it is reused.  The API and the parameters are
-dictated by the 3rd party component IdentityServer 3, which is an open-source implementation of OAuth2 and OpenId Connect.
+## NetworkDeviceLinkCollection
++ Include PagedItemCollection
++ items:`/networkDevices/{id}` (array[string], fixed-type) - The collection of network device links
 
-## Token Management [/Authentication/LogIn]
+## NetworkDeviceEntity
++ Include NetworkDeviceData
++ Include NetworkDeviceRelationshipLinks
 
-This endpoint allows you to retrieve and refresh access tokens which are needed on all other types of calls for authentication purposes.
+## NetworkDeviceEntityCollection
++ Include PagedItemCollection
++ items (array[NetworkDeviceEntity], fixed-type) - The collection of network devices
 
-The `/Authentication/LogIn` has two functions:
+## NetworkDeviceData
++ Include BaseObject
++ name (string) - The name of the network device
++ type:`/enumSets/{id}/members/{memberId}` (string) - A link to the type of network device
++ description (string) - The description for the network device
++ firmwareVersion:`10.0.0` (string) - The firmware version for the network device
++ category:`/enumSets/{id}/members/{memberId}` (string) - A link to the authorization category for the network device
++ timeZone:`/enumSets/{id}/members/{memberId}` (string) - A link to the time zone in which the device is located
 
-1. It is used to login. The act of logging in establishes a session for the specified Metasys user and returns an `access_token` which is used on future requests that will be sent during this session.
-1. It is used to extend a session. (All sessions have an expiration time. If you wish to keep the session alive longer - without having to login again - you can use this endpoint to refresh the token)
+## NetworkDeviceRelationshipLinks
++ self:`/networkDevices/{id}` (string) - The link to the network device
++ parent:`/networkDevices/{id}` (string) - A link to the network device that is the parent of this network device
++ networkDevices:`/networkDevices/{id}/networkDevices` (string) - A link to the network devices that are children of this network device
++ equipment:`/networkDevices/{id}/equipment` (string) - A link to the equipment instances hosted by this network device
++ spaces:`/networkDevices/{id}/spaces` (string) - A link to the spaces that are served by this network device
++ objects:`/networkDevices/{id}/objects` (string) - A link to the objects contained within this network device
++ attributes:`/networkDevices/{id}/attributes` (string) - A link to the attributes on this network device for which samples are available
++ alarms:`/networkDevices/{id}/alarms` (string) - A link to the alarms available for this network device
 
-### Login and Session Extension [POST]
+## ObjectLinkCollection
++ Include PagedItemCollection
++ items:`[/objects/{id}]` (array[string], fixed-type) - The collection of object links
 
-See the two request/response examples in the sidebar. The first shows an example of logging in and retrieving an `access_token`. 
-The second shows an example of using the refresh token to extend a session and get a new `access_token`.
+## ObjectEntity
++ Include ObjectData
++ Include ObjectRelationshipLinks
 
-+ Request (application/json)
+## ObjectEntityCollection
++ Include PagedItemCollection
++ items (array[ObjectEntity], fixed-type) - The collection of objects
 
-        {"username": "metasyssysagent", "password": "B5F4soft!"}
+## ObjectData
++ Include BaseObject
++ name (string) - The name of the object
++ type:`enumSets/{id}/members/{memberId}` (string) - A link to the type of object
 
-+ Response 200 (application/vnd.metasysapi.v1+json)
+## ObjectRelationshipLinks
++ self (string) - A link to this object
++ parent:`/objects/{id}` (string) - A link to the parent of this object
++ objects:`/objects/{id}/objects` (string) - A link to the children of this object
++ networkDevice:`/networkDevices/{id}` (string) - A link to the network device that contains this object
++ points:`/objects/{id}/points` (string) - A link to all equipment point mappings defined for this object
++ attributes:`/objects/{id}/attributes` (string) - A link to the attributes on this object for which samples are available
++ alarms:`/objects/{id}/alarms` (string) - A link to the alarms generated by this object
++ audits:`/objects/{id}/audits` (string) - A link to the audits generated for this object
 
-    + Body
+## SpaceLinkCollection
++ Include PagedItemCollection
++ items:`[/spaces/{id}]` (array[string], fixed-type) - The collection of space links
 
-            {
-                "access_token": "eyJ0eXAiOiJMN1QiLCJhbGciOiJSUzI1NiIsIng1dCI6IklFa3FIWUl1bHRlYlFMREVmWDVnMDViY2NxZyIsImtpZCI6IklFa3FIWUl1bHRlYlFMREVmWDVnMDViY2NxZyJ9.eyJpc3MiOiJodHRwczovL2xvY2FsaG9zdC9BUEkuQXV0aGVudGljYXRpb25TZXJ2aWNlIiwiYXVkIjoiaHR0cHM6Ly9sb2NhbGhvc3QvQVBJLkF1dGhlbnRpY2F0aW9uU2VydmljZS9yZXNvdXJjZXMiLCJleHAiOjE1MjU5Njg3NzYsIm5iZiI6MTUyNTk2Njk3NiwiY2xpZW50X2lkIjoiTWV0YXN5cyBVSSIsInNjb3BlIjpbIm1ldGFzeXMtdWktYXBpIiwib2ZmbGluZV9hY2Nlc3MiLCJvcGVuaWQiXSwic3ViIjoiNjY0ZGQxZTMtZWE3OS00MTE5LWE5ZjgtNTMzZjJlZTU2OTFjIiwiYXV0aF90aW1lIjoxNTI1OTY2OTc2LCJpZHAiOiJpZHNydiIsIlVzZXJJZCI6IjEiLCJVc2VyTmFtZSI6Im1ldGFzeXNzeXNhZ2VudCIsIklzQWRtaW4iOiJUcnVlIiwiSXNQYXNzd29yZENoYW5nZVJlcXVpcmVkIjoiRmFsc2UiLCJJc1Rlcm1zQW5kQ29uZGl0aW9uc1JlcXVpcmVkIjoiRmFsc2UiLCJJc0xpY2Vuc2VkIjoiVHJ1ZSIsIkN1bHR1cmUiOiJlbi1VUyIsImFtciI6WyJwYXNzd29yZCJdfQ.HHNzOks154CWHG1lqmgq2cOueMFaIUtCbMu4_8bE2O8SdKKeoFKD91WMRUrKbrQ-EUiR7pSbl8HgrLNFaLDNGqFCxQUG7X3Qbc60fSZc-QAcit16pXuvfAdQ16iKTaUE6Wxja9PM_5x0JbvDHm4GghWeUonw5lsWB_iFjFQf23E1eOZAP_dA1ueiza1Uqz-5cQ8l5wylxQNIKevoUTxwb1mBKyEzHARGcThxsWJBW2qwfJUOHnmB67FMBJunHLerFeXpvj3xxobtKbkYVGaf2-kECArRILKEH5HO8MV1Fj4nloVUbL7z7uSfL_nSRDCH0wk8--SCWZW9N1qfMOhijQ",
-                "expires_in": 1800,
-                "token_type": "Bearer",
-                "refresh_token": "a13dc41187f43a38ae0b9153b197fa57"
-            }
+## SpaceEntity
++ Include SpaceData
++ Include SpaceRelationshipLinks
 
-    + Attributes (TokenResponse)
+## SpaceEntityCollection
++ Include PagedItemCollection
++ items (array[SpaceEntity], fixed-type) - The collection of spaces
 
-## Requesting User Profile [/connect/userinfo]
+## SpaceData
++ Include BaseObject
++ name (string) - The name of the space
++ type:`/enumSets/{id}/members/{memberId}` (string) - A link to the type of space
 
-### Request a User Profile [POST]
-Receives the logged in user's profile information
+## SpaceRelationshipLinks
++ self:`/spaces/{id}` (string) - A link to this space
++ parent:`/spaces/{id}` (string) - A link to the space that contains this space
++ spaces:`/spaces/{id}/spaces` (string) - A link to the spaces contained within this space
++ equipment:`/spaces/{id}/equipment` (string) - A link to the equipment instances serving this space
++ networkDevices:`/spaces/{id}/networkDevices` (string) - A link to the network devices serving this space
 
-+ Request
-    + Headers
+## ObjectAttributeWithSamples
++ samples:`/objects/{id}/attributes/{attributeId}/samples` (string) - A link to this collection of object value samples
++ attribute:`enumSets/{id}/members/{memberId}` (string) - A link to the attribute on which the samples were taken
 
-            Content-Type: application/x-www-form-urlencoded
-            Authorization: Bearer {access_token}
+## NetworkDeviceAttributeWithSamples
++ samples:`/networkDevice/{id}/attributes/{attributeId}/samples` (string) - A link to the collection of network device value samples
++ attribute:`enumSets/{id}/members/{memberId}` (string) - A link to the attribute on which the samples were taken
 
-+ Response 200 (application/vnd.metasysapi.v1+json)
-    + Headers
+## ObjectValueSamplesEntity
++ Include ValueSamplesData
++ Include ObjectValueSamplesRelationshipLinks
 
-    + Attributes
-        + UserId (string) - User Id
-        + UserName (string) - User Name
-        + Culture (string) - Language - Locale Code
-        + IsAdministrator (string) - Boolean Flag
-        + CategoryPermissions (string) - JSON-Formatted Serialized List of CategoryPermissions
-        + SystemPermissions (string) - JSON-Formatted Serialized SystemPermissions
+## NetworkDeviceValueSamplesEntity
++ Include ValueSamplesData
++ Include NetworkDeviceValueSamplesRelationshipLinks
+
+## ObjectAttributeWithSamplesCollection
++ Include ItemCollection
++ items (array[ObjectAttributeWithSamples], fixed-type) - The collection of available samples
+
+## NetworkDeviceAttributeWithSamplesCollection
++ Include ItemCollection
++ items (array[NetworkDeviceAttributeWithSamples], fixed-type) - The collection of available samples
+
+## ValueSamplesData
++ Include PagedItemCollection
++ attribute:`/enumSets/509/members/{memberId}` - A link to the attribute for which the samples were generated
+
+## ObjectValueSamplesRelationshipLinks
++ self:`/objects/{id}/attributes/{attributeId}/samples` (string) - A link to this collection of object value samples
++ object:`/objects/{id}` (string) - A link to the object from which these samples were generated
+
+## NetworkDeviceValueSamplesRelationshipLinks
++ self:`/networkDevice/{id}/attributes/{attributeId}/samples` (string) - A link to this collection of network device value samples
++ networkDevice:`/networkDevices/{id}` (string) - A link to the network device from which these samples were generated
+
+## ValueSampleAnalog
++ value (AnalogValueSampleRaw) - The sample value
++ timestamp:`2000-01-01T12:00:00Z` (string) - The ISO-8601 encoded timestamp for when the sample was recorded
++ isReliable (boolean) - The flag indicating whether the source of the sample was in a reliable state when the sample was recorded
+
+## ValueSampleDigital
++ value (DigitalValuesSampleRaw) - The sample value
++ timestamp:`2000-01-01T12:00:00Z` (string) - The ISO-8601 encoded timestamp for when the sample was recorded
++ isReliable (boolean) - The flag indicating whether the source of the sample was in a reliable state when the sample was recorded
+
+## AnalogValueSampleRaw
++ value:`68.9` (number) - The value of the sample
++ units:`/enumSets/{id}/members/{memberId}` (string) - A link to the units of the sample
+
+## DigitalValuesSampleRaw
++ value:`1` (number) - The value of the sample
++ valueEnumMember:`/enumSets/{id}/members/{memberId}` (string) - A link to the enum member for the sample value
