@@ -156,105 +156,6 @@ Receives the logged in user's profile information
         + CategoryPermissions (string) - JSON-Formatted Serialized List of CategoryPermissions
         + SystemPermissions (string) - JSON-Formatted Serialized SystemPermissions
 
-Group Audits
-================
-
-This section contains information about audits as used within the Metasys API
-
-### Get Audits [GET /audits/{?originApplications,classLevels,actionTypes,startTime,endTime,excludeDiscarded,page,pageSize,sort}]
-Retrieves a collection of audits. When using multiple filters, an AND evaluation is assumed.
-
-+ Parameters
-    + originApplications:`1,2` (string, optional) - Filter by comma-separated list of origin applications
-        + See /enumSets/578/members for possible values
-    + classLevels:`1,2` (string, optional) - Filter by comma-separated list of class levels
-        + See /enumSets/568/members for possible values
-    + actionTypes:`1,2` (string, optional) - Filter by comma-separated list of the action types
-        + See /enumSets/577/members for possible values
-    + startTime:`2018-05-21T13:58:20.243Z` (string, optional) - The ISO-8601 encoded dateTime representing the earliest audit to return
-    + endTime:`2018-05-22T13:58:20.243Z` (string, optional) - The ISO-8601 encoded dateTime representing the latest audit to return
-    + excludeDiscarded (boolean, optional) - Determines whether discarded audits will be excluded from results. Default is `false` (discarded audits will not be excluded).
-        + Accepted Values: `true`,`false`
-        + Default: `false`
-    + page (number, optional) - The page number of items to return
-        + Default: `1`
-    + pageSize (number, optional) - The maximum number of items to return in the response
-        + Default: `100`
-    + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
-        + Accepted Values: `creationTime`
-        + Default: `-creationTime`
-
-+ Request
-    + Headers
-
-            Accept: application/vnd.metasysapi.v1+json
-            Authorization: Bearer [token]
-
-+ Response 200 (application/vnd.metasysapi.v1+json)
-    + Headers
-
-            Allow: GET
-
-    + Attributes
-        + Include AuditEntityCollection
-        + self:`/audits{?queryParams}` (string) - A link to this audit collection
-
-### Get A Single Audit [GET /audits/{id}]
-Retrieves the specified audit.
-
-+ Parameters
-    + id:`00000000-0000-0000-0000-000000000000` (string) - The identifier of the audit to retrieve
-    
-+ Request
-    + Headers
-
-            Accept: application/vnd.metasysapi.v1+json
-            Authorization: Bearer [token]
-
-+ Response 200 (application/vnd.metasysapi.v1+json)
-    + Headers
-
-            Allow: GET
-
-    + Attributes(AuditEntity)
-
-### Get Audits For An Object [GET /objects/{id}/audits{?originApplications,classLevels,actionTypes,startTime,endTime,excludeDiscarded,page,pageSize,sort}]
-Retrieves a collection of audits for the specified object. When using multiple filters, an AND evaluation is assumed.
-
-+ Parameters
-    + originApplications:`1,2` (string, optional) - Filter by comma-separated list of origin applications
-        + See /enumSets/578/members for possible values
-    + classLevels:`1,2` (string, optional) - Filter by comma-separated list of class levels
-        + See /enumSets/568/members for possible values
-    + actionTypes:`1,2` (string, optional) - Filter by comma-separated list of the action types
-        + See /enumSets/577/members for possible values
-    + startTime:`2018-05-21T13:58:20.243Z` (string, optional) - The ISO-8601 encoded dateTime representing the earliest audit to return
-    + endTime:`2018-05-22T13:58:20.243Z` (string, optional) - The ISO-8601 encoded dateTime representing the latest audit to return
-    + excludeDiscarded (boolean, optional) - Determines whether discarded audits will be excluded from results. Default is `false` (discarded audits will not be excluded).
-        + Accepted Values: `true`,`false`
-        + Default: `false`
-    + page (number, optional) - The page number of items to return
-        + Default: `1`
-    + pageSize (number, optional) - The maximum number of items to return in the response
-        + Default: `100`
-    + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
-        + Accepted Values: `creationTime`
-        + Default: `-creationTime`
-
-+ Request
-    + Headers
-
-            Accept: application/vnd.metasysapi.v1+json
-            Authorization: Bearer [token]
-
-+ Response 200 (application/vnd.metasysapi.v1+json)
-    + Headers
-
-            Allow: GET
-    + Attributes
-        + Include AuditEntityCollection
-        + self:`/objects/{id}/audits{?queryParams}` (string) - A link to this audit collection
-
 Group Alarms
 ============
 
@@ -281,7 +182,7 @@ Retrieves a collection of alarms.
         + See /enumSets/33/members for possible values
     + page (number, optional) - The page number of items to return
         + Default: `1`
-    + pageSize (number, optional) - The maximum number of items to return in the response
+    + pageSize (number, optional) - The maximum number of items to return in the response. Valid range is 1-10,000.
         + Default: `100`
     + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
         + Accepted Values: `itemReference`, `priority`, `creationTime`
@@ -353,7 +254,7 @@ Retrieves a collection of alarms for the specified network device.
         + See /enumSets/509/members for possible values
     + page (number, optional) - The page number of items to return
         + Default: `1`
-    + pageSize (number, optional) - The maximum number of items to return in the response
+    + pageSize (number, optional) - The maximum number of items to return in the response. Valid range is 1-10,000.
         + Default: `100`
     + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
         + Accepted Values: `priority`, `creationTime`
@@ -391,7 +292,7 @@ Retrieves a collection of alarms for the specified object.
         + See /enumSets/509/members for possible values
     + page (number, optional) - The page number of items to return
         + Default: `1`
-    + pageSize (number, optional) - The maximum number of items to return in the response
+    + pageSize (number, optional) - The maximum number of items to return in the response. Valid range is 1-10,000.
         + Default: `100`
     + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
         + Accepted Values: `priority`, `creationTime`
@@ -415,34 +316,6 @@ Group Annotations
 
 This section contains information about annotations as used within the Metasys API
 
-### Get Audit Annotations [GET /audits/{id}/annotations{?page,pageSize,sort}]
-Retrieves a collection of audit annotations.
-
-+ Parameters
-    + id:`00000000-0000-0000-0000-000000000000` (string) - The identifier of the audit to retrieve annotations for
-    + page (number, optional) - The page number of items to return
-        + Default: `1`
-    + pageSize (number, optional) - The maximum number of items to return in the response
-        + Default: `100`
-    + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
-        + Accepted Values: `creationTime`
-        + Default: `-creationTime`
-
-+ Request
-    + Headers
-
-            Accept: application/vnd.metasysapi.v1+json
-            Authorization: Bearer [token]
-
-+ Response 200 (application/vnd.metasysapi.v1+json)
-    + Headers
-
-            Allow: GET
-
-    + Attributes
-        + Include AuditAnnotationEntityCollection
-        + self:`/audits/{id}/annotations{?queryParams}` (string) - A link to this audit annotation data set
-
 ### Get Alarm Annotations [GET /alarms/{id}/annotations/{?startTime,endTime,page,pageSize,sort}]
 Retrieves the collection of annotations available for the specified alarm.
 
@@ -452,7 +325,7 @@ Retrieves the collection of annotations available for the specified alarm.
     + endTime (string, optional) - The ISO-8601 encoded dateTime representing the latest annotation to return
     + page (number, optional) - The page number of items to return
         + Default: `1`
-    + pageSize (number, optional) - The maximum number of items to return in the response
+    + pageSize (number, optional) - The maximum number of items to return in the response. Valid range is 1-10,000.
         + Default: `100`
     + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
         + Accepted Values: `creationTime`
@@ -473,22 +346,146 @@ Retrieves the collection of annotations available for the specified alarm.
         + Include AlarmAnnotationEntityCollection
         + self:`/alarms/{id}/annotations{?queryParams}` (string) - A link to this alarm annotation collection
 
+### Get Audit Annotations [GET /audits/{id}/annotations{?page,pageSize,sort}]
+Retrieves a collection of audit annotations.
+
++ Parameters
+    + id:`00000000-0000-0000-0000-000000000000` (string) - The identifier of the audit to retrieve annotations for
+    + page (number, optional) - The page number of items to return
+        + Default: `1`
+    + pageSize (number, optional) - The maximum number of items to return in the response. Valid range is 1-10,000.
+        + Default: `100`
+    + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
+        + Accepted Values: `creationTime`
+        + Default: `-creationTime`
+
++ Request
+    + Headers
+
+            Accept: application/vnd.metasysapi.v1+json
+            Authorization: Bearer [token]
+
++ Response 200 (application/vnd.metasysapi.v1+json)
+    + Headers
+
+            Allow: GET
+
+    + Attributes
+        + Include AuditAnnotationEntityCollection
+        + self:`/audits/{id}/annotations{?queryParams}` (string) - A link to this audit annotation data set
+
+Group Audits
+================
+
+This section contains information about audits as used within the Metasys API
+
+### Get Audits [GET /audits/{?originApplications,classLevels,actionTypes,startTime,endTime,excludeDiscarded,page,pageSize,sort}]
+Retrieves a collection of audits. When using multiple filters, an AND evaluation is assumed.
+
++ Parameters
+    + originApplications:`1,2` (string, optional) - Filter by comma-separated list of origin applications
+        + See /enumSets/578/members for possible values
+    + classLevels:`1,2` (string, optional) - Filter by comma-separated list of class levels
+        + See /enumSets/568/members for possible values
+    + actionTypes:`1,2` (string, optional) - Filter by comma-separated list of the action types
+        + See /enumSets/577/members for possible values
+    + startTime:`2018-05-21T13:58:20.243Z` (string, optional) - The ISO-8601 encoded dateTime representing the earliest audit to return
+    + endTime:`2018-05-22T13:58:20.243Z` (string, optional) - The ISO-8601 encoded dateTime representing the latest audit to return
+    + excludeDiscarded (boolean, optional) - Determines whether discarded audits will be excluded from results. Default is `false` (discarded audits will not be excluded).
+        + Accepted Values: `true`,`false`
+        + Default: `false`
+    + page (number, optional) - The page number of items to return
+        + Default: `1`
+    + pageSize (number, optional) - The maximum number of items to return in the response. Valid range is 1-10,000.
+        + Default: `100`
+    + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
+        + Accepted Values: `creationTime`
+        + Default: `-creationTime`
+
++ Request
+    + Headers
+
+            Accept: application/vnd.metasysapi.v1+json
+            Authorization: Bearer [token]
+
++ Response 200 (application/vnd.metasysapi.v1+json)
+    + Headers
+
+            Allow: GET
+
+    + Attributes
+        + Include AuditEntityCollection
+        + self:`/audits{?queryParams}` (string) - A link to this audit collection
+
+### Get A Single Audit [GET /audits/{id}]
+Retrieves the specified audit.
+
++ Parameters
+    + id:`00000000-0000-0000-0000-000000000000` (string) - The identifier of the audit to retrieve
+    
++ Request
+    + Headers
+
+            Accept: application/vnd.metasysapi.v1+json
+            Authorization: Bearer [token]
+
++ Response 200 (application/vnd.metasysapi.v1+json)
+    + Headers
+
+            Allow: GET
+
+    + Attributes(AuditEntity)
+
+### Get Audits For An Object [GET /objects/{id}/audits{?originApplications,classLevels,actionTypes,startTime,endTime,excludeDiscarded,page,pageSize,sort}]
+Retrieves a collection of audits for the specified object. When using multiple filters, an AND evaluation is assumed.
+
++ Parameters
+    + originApplications:`1,2` (string, optional) - Filter by comma-separated list of origin applications
+        + See /enumSets/578/members for possible values
+    + classLevels:`1,2` (string, optional) - Filter by comma-separated list of class levels
+        + See /enumSets/568/members for possible values
+    + actionTypes:`1,2` (string, optional) - Filter by comma-separated list of the action types
+        + See /enumSets/577/members for possible values
+    + startTime:`2018-05-21T13:58:20.243Z` (string, optional) - The ISO-8601 encoded dateTime representing the earliest audit to return
+    + endTime:`2018-05-22T13:58:20.243Z` (string, optional) - The ISO-8601 encoded dateTime representing the latest audit to return
+    + excludeDiscarded (boolean, optional) - Determines whether discarded audits will be excluded from results. Default is `false` (discarded audits will not be excluded).
+        + Accepted Values: `true`,`false`
+        + Default: `false`
+    + page (number, optional) - The page number of items to return
+        + Default: `1`
+    + pageSize (number, optional) - The maximum number of items to return in the response. Valid range is 1-10,000.
+        + Default: `100`
+    + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
+        + Accepted Values: `creationTime`
+        + Default: `-creationTime`
+
++ Request
+    + Headers
+
+            Accept: application/vnd.metasysapi.v1+json
+            Authorization: Bearer [token]
+
++ Response 200 (application/vnd.metasysapi.v1+json)
+    + Headers
+
+            Allow: GET
+    + Attributes
+        + Include AuditEntityCollection
+        + self:`/objects/{id}/audits{?queryParams}` (string) - A link to this audit collection
+
 Group Enumerations
 ==================
 
 This section contains information about enumeration-related resources as used within the Metasys API.
 
-## Enum Set Collection [/enumSets{?page,pageSize}]
-A collection of all enumeration sets in the system.
+### Get Enum Sets [GET /enumSets{?page,pageSize}]
+Retrieves a collection of all enumeration sets in the system.
 
 + Parameters
     + page (number, optional) - The page number of items to return
         + Default: `1`
-    + pageSize (number, optional) - The maximum number of items to return in the response
+    + pageSize (number, optional) - The maximum number of items to return in the response. Valid range is 1-1,000.
         + Default: `100`
-
-### Get Enum Sets [GET]
-Retrieves a collection of all enumeration sets in the system.
 
 + Request
     + Headers
@@ -505,14 +502,11 @@ Retrieves a collection of all enumeration sets in the system.
         + Include EnumSetCollection
         + self:`/enumSets{?queryParams}` (string) - A link to this enum set collection
 
-## Enum Set [/enumSets/{id}]
-A set of enumerated values
+### Get A Single Enum Set [GET /enumSets/{id}]
+Retrieves the specified enumeration set.
 
 + Parameters
     + id (number) - The identifier for the enum set
-
-### Get A Single Enum Set [GET]
-Retrieves the specified enumeration set.
 
 + Request
     + Headers
@@ -527,18 +521,15 @@ Retrieves the specified enumeration set.
 
     + Attributes(EnumSet)
 
-## Enum Member Collection [/enumSets/{id}/members{?page,pageSize}]
-A collection of enumerated member values within an enum set
+### Get Enum Members [GET /enumSets/{id}/members{?page,pageSize}]
+Retrieves the collection of member values belonging to the specified enumeration set.
 
 + Parameters
     + id (number) - The identifier for the enum set
     + page (number, optional) - The page number of items to return
         + Default: `1`
-    + pageSize (number, optional) - The maximum number of items to return in the response
+    + pageSize (number, optional) - The maximum number of items to return in the response. Valid range is 1-1,000.
         + Default: `100`
-
-### Get Enum Members [GET]
-Retrieves the collection of member values belonging to the specified enumeration set.
 
 + Request
     + Headers
@@ -555,15 +546,12 @@ Retrieves the collection of member values belonging to the specified enumeration
         + Include EnumMemberCollection
         + self:`/enumSets/{id}/members{?queryParams}` (string) - A link to this enum member collection
 
-## Enum Member [/enumSets/{id}/members/{memberId}]
-A particular member value within an enum set
+### Get A Single Enum Member [GET /enumSets/{id}/members/{memberId}]
+Retrieves the specified enumeration member value.
 
 + Parameters
     + id (number) - The identifier for the enum set
     + memberId (number) - The identifier for the enum member
-
-### Get A Single Enum Member [GET]
-Retrieves the specified enumeration member value.
 
 + Request
     + Headers
@@ -588,7 +576,7 @@ Retrieves a collection of equipment instances.
 + Parameters
     + page (number, optional) - The page number of items to return
         + Default: `1`
-    + pageSize (number, optional) - The maximum number of items to return in the response
+    + pageSize (number, optional) - The maximum number of items to return in the response. Valid range is 1-1,000.
         + Default: `100`
     + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
         + Accepted Values: `itemReference`, `name`, `type`
@@ -634,7 +622,7 @@ Retrieves the equipment served by the specified equipment instance.
 + Parameters
     + page (number, optional) - The page number of items to return
         + Default: `1`
-    + pageSize (number, optional) - The maximum number of items to return in the response
+    + pageSize (number, optional) - The maximum number of items to return in the response. Valid range is 1-1,000.
         + Default: `100`
     + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
         + Accepted Values: `itemReference`, `name`, `type`
@@ -655,13 +643,40 @@ Retrieves the equipment served by the specified equipment instance.
         + Include EquipmentEntityCollection
         + self:`/equipment/{id}/equipment{?queryParams}` (string) - A link to this equipment collection
 
+### Get Points Defined by An Equipment Instance [GET /equipment/{id}/points{?page,pageSize,sort}]
+Retrieves the collection of points that are defined by the specified equipment instance. Each point contains a mapping to an attribute on an object.
+
++ Parameters
+    + page (number, optional) - The page number of items to return
+        + Default: `1`
+    + pageSize (number, optional) - The maximum number of items to return in the response. Valid range is 1-1,000.
+        + Default: `100`
+    + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
+        + Accepted Values: `category`,`equipmentName`, `isDisplayData`, `shortName`
+        + Default: `shortName`
+
++ Request
+    + Headers
+
+            Accept: application/vnd.metasysapi.v1+json
+            Authorization: Bearer [token]
+
++ Response 200 (application/vnd.metasysapi.v1+json)
+    + Headers
+
+            Allow: GET
+
+    + Attributes 
+        + Include EquipmentPointMappingCollection
+        + self:`/equipment/{id}/points{?queryParams}` (string) - A link to this equipment point mapping collection
+
 ### Get Equipment that Serve An Equipment Instance [GET /equipment/{id}/upstreamEquipment{?page,pageSize,sort}]
 Retrieves the collection of equipment that serve the specified equipment instance.
 
 + Parameters
     + page (number, optional) - The page number of items to return
         + Default: `1`
-    + pageSize (number, optional) - The maximum number of items to return in the response
+    + pageSize (number, optional) - The maximum number of items to return in the response. Valid range is 1-1,000.
         + Default: `100`
     + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
         + Accepted Values: `itemReference`, `name`, `type`
@@ -688,7 +703,7 @@ Retrieves the collection of equipment instances that are hosted by the specified
 + Parameters
     + page (number, optional) - The page number of items to return
         + Default: `1`
-    + pageSize (number, optional) - The maximum number of items to return in the response
+    + pageSize (number, optional) - The maximum number of items to return in the response. Valid range is 1-1,000.
         + Default: `100`
     + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
         + Accepted Values: `itemReference`, `name`, `type`
@@ -715,7 +730,7 @@ Retrieves the collection of equipment that serve the specified space.
 + Parameters
     + page (number, optional) - The page number of items to return
         + Default: `1`
-    + pageSize (number, optional) - The maximum number of items to return in the response
+    + pageSize (number, optional) - The maximum number of items to return in the response. Valid range is 1-1,000.
         + Default: `100`
     + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
         + Accepted Values: `itemReference`, `name`, `type`
@@ -749,7 +764,7 @@ Retrieves a collection of network devices.
         + See /networkDevices/availableTypes for possible values
     + page (number, optional) - The page number of items to return
         + Default: `1`
-    + pageSize (number, optional) - The maximum number of items to return in the response
+    + pageSize (number, optional) - The maximum number of items to return in the response. Valid range is 1-1,000.
         + Default: `100`
     + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
         + Accepted Values: `categoryId`, `firmwareVersion`, `itemReference`, `name`, `typeId`
@@ -808,40 +823,13 @@ Retrieves the specified network device.
 
     + Attributes(NetworkDeviceEntity)
 
-### Get Network Device Children [GET /networkDevices/{id}/networkDevices{?page,pageSize,sort}]
-Retrieves the collection of network devices that are children of the specified network device.
-
-+ Parameters
-    + page (number, optional) - The page number of items to return
-        + Default: `1`
-    + pageSize (number, optional) - The maximum number of items to return in the response
-        + Default: `100`
-    + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
-        + Accepted Values: `categoryId`, `firmwareVersion`, `itemReference`, `name`, `typeId`
-        + Default: `name`
-
-+ Request
-    + Headers
-
-            Accept: application/vnd.metasysapi.v1+json
-            Authorization: Bearer [token]
-
-+ Response 200 (application/vnd.metasysapi.v1+json)
-    + Headers
-
-            Allow: GET
-
-    + Attributes 
-        + Include NetworkDeviceEntityCollection
-        + self:`/networkDevices/{id}/networkDevices{?queryParams}` (string) - A link to this network device collection
-
 ### Get Network Devices Hosting An Equipment Instance [GET /equipment/{id}/networkDevices{?page,pageSize,sort}]
 Retrieves the collection of network devices that host the specified equipment instance, along with the parents of those network devices. A network device is considered to host an equipment if the equipment defines points that map to an attribute of any object contained on the network device.
 
 + Parameters
     + page (number, optional) - The page number of items to return
         + Default: `1`
-    + pageSize (number, optional) - The maximum number of items to return in the response
+    + pageSize (number, optional) - The maximum number of items to return in the response. Valid range is 1-1,000.
         + Default: `100`
     + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
         + Accepted Values: `categoryId`, `firmwareVersion`, `itemReference`, `name`, `typeId`
@@ -862,6 +850,33 @@ Retrieves the collection of network devices that host the specified equipment in
         + Include NetworkDeviceEntityCollection
         + self:`/equipment/{id}/networkDevices{?queryParams}` (string) - A link to this network device collection
 
+### Get Network Device Children [GET /networkDevices/{id}/networkDevices{?page,pageSize,sort}]
+Retrieves the collection of network devices that are children of the specified network device.
+
++ Parameters
+    + page (number, optional) - The page number of items to return
+        + Default: `1`
+    + pageSize (number, optional) - The maximum number of items to return in the response. Valid range is 1-1,000.
+        + Default: `100`
+    + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
+        + Accepted Values: `categoryId`, `firmwareVersion`, `itemReference`, `name`, `typeId`
+        + Default: `name`
+
++ Request
+    + Headers
+
+            Accept: application/vnd.metasysapi.v1+json
+            Authorization: Bearer [token]
+
++ Response 200 (application/vnd.metasysapi.v1+json)
+    + Headers
+
+            Allow: GET
+
+    + Attributes 
+        + Include NetworkDeviceEntityCollection
+        + self:`/networkDevices/{id}/networkDevices{?queryParams}` (string) - A link to this network device collection
+
 ### Get Network Devices Serving A Space [GET /spaces/{id}/networkDevices{?page,pageSize,sort}]
 Retrieves the collection of network devices that are serving the specified space.
 A space is considered to be served by a network device is considered to host an equipment if any equipment instance serving the space defines points that map to an attribute of any object contained on the network device.
@@ -869,7 +884,7 @@ A space is considered to be served by a network device is considered to host an 
 + Parameters
     + page (number, optional) - The page number of items to return
         + Default: `1`
-    + pageSize (number, optional) - The maximum number of items to return in the response
+    + pageSize (number, optional) - The maximum number of items to return in the response. Valid range is 1-1,000.
         + Default: `100`
     + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
         + Accepted Values: `categoryId`, `firmwareVersion`, `itemReference`, `name`, `typeId`
@@ -903,7 +918,7 @@ Retrieves a collection of objects. Note that this endpoint requires the `type` p
         + See /enumSets/508/members for possible values
     + page (number, optional) - The page number of items to return
         + Default: `1`
-    + pageSize (number, optional) - The maximum number of items to return in the response
+    + pageSize (number, optional) - The maximum number of items to return in the response. Valid range is 1-1,000.
         + Default: `100`
     + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
         + Accepted Values: `itemReference`, `name`, `typeId`
@@ -944,13 +959,40 @@ Retrieves the specified object.
 
     + Attributes(ObjectEntity)
 
+### Get Network Device Children Objects [GET /networkDevices/{id}/objects{?page,pageSize,sort}]
+Retrieves the collection of objects that are children of the specified network device.
+
++ Parameters
+    + page (number, optional) - The page number of items to return
+        + Default: `1`
+    + pageSize (number, optional) - The maximum number of items to return in the response. Valid range is 1-1,000.
+        + Default: `100`
+    + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
+        + Accepted Values: `itemReference`, `name`, `typeId`
+        + Default: `name`
+
++ Request
+    + Headers
+
+            Accept: application/vnd.metasysapi.v1+json
+            Authorization: Bearer [token]
+
++ Response 200 (application/vnd.metasysapi.v1+json)
+    + Headers
+
+            Allow: GET
+
+    + Attributes 
+        + Include ObjectEntityCollection
+        + self:`/networkDevices/{id}/objects{?queryParams}` (string) - A link to this object collection
+
 ### Get Object Children [GET /objects/{id}/objects{?page,pageSize,sort}]
 Retrieves the children (recursively) of the specified object.
 
 + Parameters
     + page (number, optional) - The page number of items to return
         + Default: `1`
-    + pageSize (number, optional) - The maximum number of items to return in the response
+    + pageSize (number, optional) - The maximum number of items to return in the response. Valid range is 1-1,000.
         + Default: `100`
     + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
         + Accepted Values: `itemReference`, `name`, `typeId`
@@ -972,51 +1014,17 @@ Retrieves the children (recursively) of the specified object.
         + Include ObjectEntityCollection
         + self:`/objects/{id}/objects{?queryParams}` (string) - A link to this object collection
 
-### Get Network Device Children Objects [GET /networkDevices/{id}/objects{?page,pageSize,sort}]
-Retrieves the collection of objects that are children of the specified network device.
+### Get Equipment Points Mapped To An Object [GET /objects/{id}/points{?page,pageSize,sort}]
+Retrieves all equipment points mapped to attributes of this object.
 
 + Parameters
     + page (number, optional) - The page number of items to return
         + Default: `1`
-    + pageSize (number, optional) - The maximum number of items to return in the response
+    + pageSize (number, optional) - The maximum number of items to return in the response. Valid range is 1-1,000.
         + Default: `100`
     + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
-        + Accepted Values: `itemReference`, `name`, `typeId`
-        + Default: `name`
-
-+ Request
-    + Headers
-
-            Accept: application/vnd.metasysapi.v1+json
-            Authorization: Bearer [token]
-
-+ Response 200 (application/vnd.metasysapi.v1+json)
-    + Headers
-
-            Allow: GET
-
-    + Attributes 
-        + Include ObjectEntityCollection
-        + self:`/networkDevices/{id}/objects{?queryParams}` (string) - A link to this object collection
-
-Group Spaces
-============
-
-This section contains information about space-related resources as used within the Metasys API.
-
-### Get Spaces [GET /spaces{?type,page,pageSize,sort}]
-Retrieves a collection of spaces.
-
-+ Parameters
-    + type (number, optional) - Type of space to return
-        + See /enumSets/1766/members for possible values
-    + page (number, optional) - The page number of items to return
-        + Default: `1`
-    + pageSize (number, optional) - The maximum number of items to return in the response
-        + Default: `100`
-    + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
-        + Accepted Values: `itemReference`, `name`, `typeId`
-        + Default: `name`
+        + Accepted Values: `category`,`equipmentName`, `isDisplayData`, `shortName`
+        + Default: `shortName`
 
 + Request
     + Headers
@@ -1030,109 +1038,8 @@ Retrieves a collection of spaces.
             Allow: GET
 
     + Attributes
-        + Include SpaceEntityCollection
-        + self:`/spaces{?queryParams}` (string) - A link to this space collection
-
-### Get A Single Space [GET /spaces/{id}]
-Retrieves the specified space.
-
-+ Parameters
-    + id (string) - The identifier of the space
-
-+ Request
-    + Headers
-
-            Accept: application/vnd.metasysapi.v1+json
-            Authorization: Bearer [token]
-
-+ Response 200 (application/vnd.metasysapi.v1+json)
-    + Headers
-
-            Allow: GET
-
-    + Attributes (SpaceEntity)
-
-### Get Space Children [GET /spaces/{id}/spaces{?page,pageSize,sort}]
-Retrieves the collection of spaces that are located within the specified space.
-
-+ Parameters
-    + page (number, optional) - The page number of items to return
-        + Default: `1`
-    + pageSize (number, optional) - The maximum number of items to return in the response
-        + Default: `100`
-    + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
-        + Accepted Values: `itemReference`, `name`, `typeId`
-        + Default: `name`
-
-+ Request
-    + Headers
-
-            Accept: application/vnd.metasysapi.v1+json
-            Authorization: Bearer [token]
-
-+ Response 200 (application/vnd.metasysapi.v1+json)
-    + Headers
-
-            Allow: GET
-
-    + Attributes
-        + Include SpaceEntityCollection
-        + self:`/spaces/{id}/spaces{?queryParams}` (string) - A link to this space collection.
-
-### Get Spaces Served By An Equipment Instance [GET /equipment/{id}/spaces{?page,pageSize,sort}]
-Retrieves the collection of spaces served by the specified equipment instance.
-
-+ Parameters
-    + page (number, optional) - The page number of items to return
-        + Default: `1`
-    + pageSize (number, optional) - The maximum number of items to return in the response
-        + Default: `100`
-    + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
-        + Accepted Values: `itemReference`, `name`, `typeId`
-        + Default: `name`
-
-+ Request
-    + Headers
-
-            Accept: application/vnd.metasysapi.v1+json
-            Authorization: Bearer [token]
-
-+ Response 200 (application/vnd.metasysapi.v1+json)
-    + Headers
-
-            Allow: GET
-
-    + Attributes
-        + Include SpaceEntityCollection
-        + self:`/equipment/{id}/spaces{?queryParams}` (string) - A link to this space collection
-
-### Get Spaces Served by a Network Device [GET /networkDevices/{id}/spaces{?page,pageSize,sort}]
-Retrieves the collection of spaces served by the specified network device.
-A space is considered to be served by a network device if any equipment instance serving the space defines points that map to an attribute of any object contained on the network device.
-
-+ Parameters
-    + page (number, optional) - The page number of items to return
-        + Default: `1`
-    + pageSize (number, optional) - The maximum number of items to return in the response
-        + Default: `100`
-    + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
-        + Accepted Values: `itemReference`, `name`, `typeId`
-        + Default: `name`
-
-+ Request
-    + Headers
-
-            Accept: application/vnd.metasysapi.v1+json
-            Authorization: Bearer [token]
-
-+ Response 200 (application/vnd.metasysapi.v1+json)
-    + Headers
-
-            Allow: GET
-
-    + Attributes
-        + Include SpaceEntityCollection
-        + self:`/networkDevices/{id}/spaces{?queryParams}` (string) - A link to this space collection
+        + Include EquipmentPointMappingCollection
+        + self:`/objects/{id}/points{?queryParams}` (string) - A link to this equipment point collection
 
 Group Samples
 ================
@@ -1169,7 +1076,7 @@ Note that the parent endpoint `/networkDevices/{id}/attributes/{attributeId}` is
     + endTime (string) - The ISO-8601 encoded dateTime representing the latest sample to return
     + page (number, optional) - The page number of items to return
         + Default: `1`
-    + pageSize (number, optional) - The maximum number of items to return in the response
+    + pageSize (number, optional) - The maximum number of items to return in the response. Valid range is 1-10,000.
         + Default: `1000`
     + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
         + Accepted Values: `timestamp`
@@ -1235,7 +1142,7 @@ Note that the parent endpoint `/objects/{id}/attributes/{attributeId}` is not cu
     + endTime (string) - The ISO-8601 encoded dateTime representing the latest sample to return
     + page (number, optional) - The page number of items to return
         + Default: `1`
-    + pageSize (number, optional) - The maximum number of items to return in the response
+    + pageSize (number, optional) - The maximum number of items to return in the response. Valid range is 1-10,000.
         + Default: `1000`
     + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
         + Accepted Values: `timestamp`
@@ -1270,6 +1177,141 @@ Note that the parent endpoint `/objects/{id}/attributes/{attributeId}` is not cu
     + Attributes (ObjectValueSamplesEntity)
       - items (array)
           - (ValueSampleDigital)
+
+Group Spaces
+============
+
+This section contains information about space-related resources as used within the Metasys API.
+
+### Get Spaces [GET /spaces{?type,page,pageSize,sort}]
+Retrieves a collection of spaces.
+
++ Parameters
+    + type (number, optional) - Type of space to return
+        + See /enumSets/1766/members for possible values
+    + page (number, optional) - The page number of items to return
+        + Default: `1`
+    + pageSize (number, optional) - The maximum number of items to return in the response. Valid range is 1-1,000.
+        + Default: `100`
+    + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
+        + Accepted Values: `itemReference`, `name`, `typeId`
+        + Default: `name`
+
++ Request
+    + Headers
+
+            Accept: application/vnd.metasysapi.v1+json
+            Authorization: Bearer [token]
+
++ Response 200 (application/vnd.metasysapi.v1+json)
+    + Headers
+
+            Allow: GET
+
+    + Attributes
+        + Include SpaceEntityCollection
+        + self:`/spaces{?queryParams}` (string) - A link to this space collection
+
+### Get A Single Space [GET /spaces/{id}]
+Retrieves the specified space.
+
++ Parameters
+    + id (string) - The identifier of the space
+
++ Request
+    + Headers
+
+            Accept: application/vnd.metasysapi.v1+json
+            Authorization: Bearer [token]
+
++ Response 200 (application/vnd.metasysapi.v1+json)
+    + Headers
+
+            Allow: GET
+
+    + Attributes (SpaceEntity)
+
+### Get Spaces Served By An Equipment Instance [GET /equipment/{id}/spaces{?page,pageSize,sort}]
+Retrieves the collection of spaces served by the specified equipment instance.
+
++ Parameters
+    + page (number, optional) - The page number of items to return
+        + Default: `1`
+    + pageSize (number, optional) - The maximum number of items to return in the response. Valid range is 1-1,000.
+        + Default: `100`
+    + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
+        + Accepted Values: `itemReference`, `name`, `typeId`
+        + Default: `name`
+
++ Request
+    + Headers
+
+            Accept: application/vnd.metasysapi.v1+json
+            Authorization: Bearer [token]
+
++ Response 200 (application/vnd.metasysapi.v1+json)
+    + Headers
+
+            Allow: GET
+
+    + Attributes
+        + Include SpaceEntityCollection
+        + self:`/equipment/{id}/spaces{?queryParams}` (string) - A link to this space collection
+
+### Get Spaces Served by a Network Device [GET /networkDevices/{id}/spaces{?page,pageSize,sort}]
+Retrieves the collection of spaces served by the specified network device.
+A space is considered to be served by a network device if any equipment instance serving the space defines points that map to an attribute of any object contained on the network device.
+
++ Parameters
+    + page (number, optional) - The page number of items to return
+        + Default: `1`
+    + pageSize (number, optional) - The maximum number of items to return in the response. Valid range is 1-1,000.
+        + Default: `100`
+    + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
+        + Accepted Values: `itemReference`, `name`, `typeId`
+        + Default: `name`
+
++ Request
+    + Headers
+
+            Accept: application/vnd.metasysapi.v1+json
+            Authorization: Bearer [token]
+
++ Response 200 (application/vnd.metasysapi.v1+json)
+    + Headers
+
+            Allow: GET
+
+    + Attributes
+        + Include SpaceEntityCollection
+        + self:`/networkDevices/{id}/spaces{?queryParams}` (string) - A link to this space collection
+
+### Get Space Children [GET /spaces/{id}/spaces{?page,pageSize,sort}]
+Retrieves the collection of spaces that are located within the specified space.
+
++ Parameters
+    + page (number, optional) - The page number of items to return
+        + Default: `1`
+    + pageSize (number, optional) - The maximum number of items to return in the response. Valid range is 1-1,000.
+        + Default: `100`
+    + sort (string, optional) - The criteria to use when sorting results (see [rules](#sorting-rules))
+        + Accepted Values: `itemReference`, `name`, `typeId`
+        + Default: `name`
+
++ Request
+    + Headers
+
+            Accept: application/vnd.metasysapi.v1+json
+            Authorization: Bearer [token]
+
++ Response 200 (application/vnd.metasysapi.v1+json)
+    + Headers
+
+            Allow: GET
+
+    + Attributes
+        + Include SpaceEntityCollection
+        + self:`/spaces/{id}/spaces{?queryParams}` (string) - A link to this space collection.
 
 # Data Structures
 
@@ -1330,27 +1372,6 @@ Note that the parent endpoint `/objects/{id}/attributes/{attributeId}` is not cu
 + Include TokenResponse
 + id_token (string) - Identity Token
 
-## AuditEntityCollection
-+ Include PagedItemCollection
-+ items (array[AuditEntity], fixed-type) - The collection of audits
-
-## AuditEntity
-+ id:`00000000-0000-0000-0000-000000000000` (string) - The identifier of the audit
-+ creationTime:`2017-09-18T08:11:28Z` (string) - The ISO-8601 encoded dateTime representing the creation time when this audit message was created
-+ actionType:`/enumSets/577/members/1` (string) - The action performed that initiated the audit. See /enumSets/577/members for possible values
-+ discarded (boolean) - Indicates if the audit has been discarded
-+ status:`/enumSets/516/members/1` (string) - Enumeration representing status. See /enumSets/516/members for possible values
-+ preData (Data) - Data value prior to the Audit
-+ postData (Data) - Data value after the Audit
-+ parameters (array[Data], fixed-type) The actual data that is changing
-+ errorString (string) - The error that may have occurred during an audit
-+ user (string) - The userName of the user that initiated the audit
-+ signature (Signature) - The user who created this audit
-+ object:`/objects/{id}` (string) - A link to the object on which the activity was generated
-+ self:`/audits/{id}` (string) - A link to this audit
-+ annotations:`/audits/{id}/annotations` (string) - Link to annotations
-+ legacy (LegacyMetasys) - Metasys specific data
-
 ## AlarmEntityDigital
 + Include AlarmEntity
 + triggerValue (DigitalValueAlarm)- The digital value of the attribute of the object on which the alarm was triggered
@@ -1370,7 +1391,6 @@ Note that the parent endpoint `/objects/{id}/attributes/{attributeId}` is not cu
 + isDiscarded (boolean) - Indicates whether the alarm has been discarded
 + category:`/enumSets/{id}/members/{memberId}` (string) - A link to the authorization category of the object when the alarm was generated
 + object:`/objects/{id}` (string) - A link to the object from which this alarm was generated
-+ attribute:`/enumSets/509/members/{memberId}` (string) - A link to the attribute for which this alarm was generated
 + annotations:`/alarms/{id}/annotations` (string) - A link to the annotations available on the alarm
 + self:`/alarms/{id}` (string) - A link to this collection of alarms
 
@@ -1437,6 +1457,7 @@ Note that the parent endpoint `/objects/{id}/attributes/{attributeId}` is not cu
 
 ## AuditAnnotationEntity
 + id:`00000000-0000-0000-0000-000000000000` (string) - The identifier of the audit annotation
++ audit:`/audits/{id}` (string) - A link to the audit this audit annotation is attached to
 + creationTime:`2017-09-18T08:11:28Z` (string) - The ISO-8601 encoded dateTime representing the creation time when this audit annotation 
 + user (string) - The user name of the user that initiated the audit annotation
 + text (string) - The text of the audit annotation
@@ -1449,6 +1470,27 @@ Note that the parent endpoint `/objects/{id}/attributes/{attributeId}` is not cu
 + 'completed' - Indicates an annotation that was added as part of a completed action
 + 'discarded' - Indicates an annotation that was added as part of a discarded action
 + 'snoozed' - Indicates an annotation that was added as part of a snooze action
+
+## AuditEntityCollection
++ Include PagedItemCollection
++ items (array[AuditEntity], fixed-type) - The collection of audits
+
+## AuditEntity
++ id:`00000000-0000-0000-0000-000000000000` (string) - The identifier of the audit
++ creationTime:`2017-09-18T08:11:28Z` (string) - The ISO-8601 encoded dateTime representing the creation time when this audit message was created
++ actionType:`/enumSets/577/members/1` (string) - The action performed that initiated the audit. See /enumSets/577/members for possible values
++ discarded (boolean) - Indicates if the audit has been discarded
++ status:`/enumSets/516/members/1` (string) - Enumeration representing status. See /enumSets/516/members for possible values
++ preData (Data) - Data value prior to the Audit
++ postData (Data) - Data value after the Audit
++ parameters (array[Data], fixed-type) The actual data that is changing
++ errorString (string) - The error that may have occurred during an audit
++ user (string) - The userName of the user that initiated the audit
++ signature (Signature) - The user who created this audit
++ object:`/objects/{id}` (string) - A link to the object on which the activity was generated
++ self:`/audits/{id}` (string) - A link to this audit
++ annotations:`/audits/{id}/annotations` (string) - Link to annotations
++ legacy (LegacyMetasys) - Metasys specific data
 
 ## EnumSet
 + Include EnumSetData
@@ -1634,30 +1676,6 @@ Note that the parent endpoint `/objects/{id}/attributes/{attributeId}` is not cu
 + alarms:`/objects/{id}/alarms` (string) - A link to the alarms generated by this object
 + audits:`/objects/{id}/audits` (string) - A link to the audits generated for this object
 
-## SpaceLinkCollection
-+ Include PagedItemCollection
-+ items:`[/spaces/{id}]` (array[string], fixed-type) - The collection of space links
-
-## SpaceEntity
-+ Include SpaceData
-+ Include SpaceRelationshipLinks
-
-## SpaceEntityCollection
-+ Include PagedItemCollection
-+ items (array[SpaceEntity], fixed-type) - The collection of spaces
-
-## SpaceData
-+ Include BaseObject
-+ name (string) - The name of the space
-+ type:`/enumSets/{id}/members/{memberId}` (string) - A link to the type of space
-
-## SpaceRelationshipLinks
-+ self:`/spaces/{id}` (string) - A link to this space
-+ parent:`/spaces/{id}` (string) - A link to the space that contains this space
-+ spaces:`/spaces/{id}/spaces` (string) - A link to the spaces contained within this space
-+ equipment:`/spaces/{id}/equipment` (string) - A link to the equipment instances serving this space
-+ networkDevices:`/spaces/{id}/networkDevices` (string) - A link to the network devices serving this space
-
 ## ObjectAttributeWithSamples
 + samples:`/objects/{id}/attributes/{attributeId}/samples` (string) - A link to this collection of object value samples
 + attribute:`enumSets/{id}/members/{memberId}` (string) - A link to the attribute on which the samples were taken
@@ -1711,3 +1729,27 @@ Note that the parent endpoint `/objects/{id}/attributes/{attributeId}` is not cu
 ## DigitalValuesSampleRaw
 + value:`1` (number) - The value of the sample
 + valueEnumMember:`/enumSets/{id}/members/{memberId}` (string) - A link to the enum member for the sample value
+
+## SpaceLinkCollection
++ Include PagedItemCollection
++ items:`[/spaces/{id}]` (array[string], fixed-type) - The collection of space links
+
+## SpaceEntity
++ Include SpaceData
++ Include SpaceRelationshipLinks
+
+## SpaceEntityCollection
++ Include PagedItemCollection
++ items (array[SpaceEntity], fixed-type) - The collection of spaces
+
+## SpaceData
++ Include BaseObject
++ name (string) - The name of the space
++ type:`/enumSets/{id}/members/{memberId}` (string) - A link to the type of space
+
+## SpaceRelationshipLinks
++ self:`/spaces/{id}` (string) - A link to this space
++ parent:`/spaces/{id}` (string) - A link to the space that contains this space
++ spaces:`/spaces/{id}/spaces` (string) - A link to the spaces contained within this space
++ equipment:`/spaces/{id}/equipment` (string) - A link to the equipment instances serving this space
++ networkDevices:`/spaces/{id}/networkDevices` (string) - A link to the network devices serving this space
